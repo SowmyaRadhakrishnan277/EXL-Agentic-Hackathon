@@ -1,0 +1,167 @@
+# Ground truth for scoring the discovery agent. Written by hand from the legacy code.
+# NEVER pass this file to an agent.
+# Lineage is one hop: each output column -> the columns of this job's input tables it is computed from.
+# skip: true = pure counts (COUNT(*)), not scored.
+
+J01_stg_customers:
+  inputs: [dbo.customers]
+  outputs: [stg.customers]
+  depends_on: []
+  wave: 1
+  columns:
+    customer_id: [dbo.customers.customer_id]
+    county: [dbo.customers.county]
+    date_of_birth: [dbo.customers.date_of_birth]
+    age_years: [dbo.customers.date_of_birth]
+    customer_since: [dbo.customers.customer_since]
+    segment: [dbo.customers.segment]
+
+J02_stg_policies:
+  inputs: [dbo.policies, dbo.products]
+  outputs: [stg.policies]
+  depends_on: []
+  wave: 1
+  columns:
+    policy_id: [dbo.policies.policy_id]
+    customer_id: [dbo.policies.customer_id]
+    product_code: [dbo.policies.product_code]
+    line_of_business: [dbo.products.line_of_business]
+    broker_id: [dbo.policies.broker_id]
+    channel: [dbo.policies.channel]
+    start_date: [dbo.policies.start_date]
+    end_date: [dbo.policies.end_date]
+    rolling_flag: [dbo.policies.end_date]
+    status: [dbo.policies.status]
+    annual_premium: [dbo.policies.annual_premium]
+    payment_frequency: [dbo.policies.payment_frequency]
+
+J03_stg_premiums:
+  inputs: [dbo.premiums]
+  outputs: [stg.premiums]
+  depends_on: []
+  wave: 1
+  columns:
+    premium_id: [dbo.premiums.premium_id]
+    policy_id: [dbo.premiums.policy_id]
+    due_date: [dbo.premiums.due_date]
+    paid_date: [dbo.premiums.paid_date]
+    amount: [dbo.premiums.amount]
+    paid_flag: [dbo.premiums.paid_date]
+
+J04_stg_claim_payments:
+  inputs: [dbo.claim_payments]
+  outputs: [legacy.stg_claim_payments]
+  depends_on: []
+  wave: 1
+  columns:
+    payment_id: [dbo.claim_payments.payment_id]
+    claim_id: [dbo.claim_payments.claim_id]
+    payment_date: [dbo.claim_payments.payment_date]
+    payment_type: [dbo.claim_payments.payment_type]
+    amount: [dbo.claim_payments.amount]
+    amount_band: [dbo.claim_payments.amount]
+
+J05_stg_claims:
+  inputs: [dbo.claims]
+  outputs: [stg.claims]
+  depends_on: []
+  wave: 1
+  columns:
+    claim_id: [dbo.claims.claim_id]
+    policy_id: [dbo.claims.policy_id]
+    loss_date: [dbo.claims.loss_date]
+    reported_date: [dbo.claims.reported_date]
+    claim_type: [dbo.claims.claim_type]
+    status: [dbo.claims.status]
+    reserve_amount: [dbo.claims.reserve_amount]
+    claim_age_days: [dbo.claims.reported_date]
+
+J06_stg_policy_earned_premium:
+  inputs: [stg.policies]
+  outputs: [stg.policy_earned_premium]
+  depends_on: [J02_stg_policies]
+  wave: 2
+  columns:
+    policy_id: [stg.policies.policy_id]
+    product_code: [stg.policies.product_code]
+    policy_year: []
+    days_in_force: [stg.policies.start_date, stg.policies.end_date]
+    earned_premium: [stg.policies.annual_premium, stg.policies.start_date, stg.policies.end_date]
+
+J07_stg_claim_totals:
+  inputs: [legacy.stg_claim_payments, stg.claims]
+  outputs: [legacy.claim_totals]
+  depends_on: [J04_stg_claim_payments, J05_stg_claims]
+  wave: 2
+  columns:
+    claim_id: [stg.claims.claim_id]
+    policy_id: [stg.claims.policy_id]
+    claim_type: [stg.claims.claim_type]
+    loss_date: [stg.claims.loss_date]
+    indemnity_paid: [legacy.stg_claim_payments.amount, legacy.stg_claim_payments.payment_type]
+    expense_paid: [legacy.stg_claim_payments.amount, legacy.stg_claim_payments.payment_type]
+    payment_count: {skip: true}
+    total_paid: [legacy.stg_claim_payments.amount, legacy.stg_claim_payments.payment_type]
+    small_claim_flag: [legacy.stg_claim_payments.amount, legacy.stg_claim_payments.payment_type]
+
+J08_rpt_monthly_claims_paid:
+  inputs: [dbo.claim_payments, stg.claims, stg.policies]
+  outputs: [rpt.monthly_claims_paid]
+  depends_on: [J02_stg_policies, J05_stg_claims]
+  wave: 2
+  columns:
+    product_code: [stg.policies.product_code]
+    payment_month: [dbo.claim_payments.payment_date]
+    claims_paid: [dbo.claim_payments.claim_id]
+    payments: {skip: true}
+    indemnity_paid: [dbo.claim_payments.amount]
+
+J09_rpt_premium_collections:
+  inputs: [stg.premiums]
+  outputs: [rpt.premium_collections]
+  depends_on: [J03_stg_premiums]
+  wave: 2
+  columns:
+    due_month: [stg.premiums.due_date]
+    instalments_due: {skip: true}
+    amount_due: [stg.premiums.amount]
+    amount_collected: [stg.premiums.amount, stg.premiums.paid_flag]
+    arrears: [stg.premiums.amount, stg.premiums.paid_flag]
+    collection_rate_pct: [stg.premiums.amount, stg.premiums.paid_flag]
+
+J10_rpt_loss_ratio:
+  inputs: [legacy.claim_totals, stg.policies, stg.policy_earned_premium]
+  outputs: [legacy.rpt_loss_ratio]
+  depends_on: [J02_stg_policies, J06_stg_policy_earned_premium, J07_stg_claim_totals]
+  wave: 3
+  columns:
+    product_code: [stg.policy_earned_premium.product_code, stg.policies.product_code]
+    year: [stg.policy_earned_premium.policy_year, legacy.claim_totals.loss_date]
+    earned_premium: [stg.policy_earned_premium.earned_premium]
+    incurred: [legacy.claim_totals.indemnity_paid]
+    claim_count: {skip: true}
+    loss_ratio: [legacy.claim_totals.indemnity_paid, stg.policy_earned_premium.earned_premium]
+
+J11_rpt_broker_commission:
+  inputs: [dbo.brokers, stg.policies]
+  outputs: [rpt.broker_commission]
+  depends_on: [J02_stg_policies]
+  wave: 2
+  columns:
+    broker_id: [dbo.brokers.broker_id]
+    written_year: [stg.policies.start_date]
+    policies_written: {skip: true}
+    written_premium: [stg.policies.annual_premium]
+    commission_due: [stg.policies.annual_premium, dbo.brokers.commission_rate]
+
+J12_rpt_open_reserves:
+  inputs: [stg.claims, stg.policies]
+  outputs: [rpt.open_reserves]
+  depends_on: [J02_stg_policies, J05_stg_claims]
+  wave: 2
+  columns:
+    product_code: [stg.policies.product_code]
+    age_band: [stg.claims.claim_age_days]
+    open_claims: {skip: true}
+    claims_with_reserve: [stg.claims.reserve_amount]
+    total_reserve: [stg.claims.reserve_amount]
