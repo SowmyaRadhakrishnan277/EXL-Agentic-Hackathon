@@ -34,16 +34,6 @@ def test_bronze_schema_follows_ddl():
                                       "paid_date DATE, amount DECIMAL(18,3)")
 
 
-@pytest.fixture(scope="module")
-def spark():
-    pytest.importorskip("pyspark")
-    from pyspark.sql import SparkSession
-    s = SparkSession.builder.master("local[1]").config("spark.ui.enabled", "false") \
-        .config("spark.sql.session.timeZone", "UTC").getOrCreate()
-    yield s
-    s.stop()
-
-
 def test_bronze_ingest_keeps_raw_data_as_is(spark, tmp_path, monkeypatch):
     raw = tmp_path / "raw"
     subprocess.run([sys.executable, "-m", "data.generator.generate", "--policies", "400",
