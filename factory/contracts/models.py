@@ -38,6 +38,8 @@ class JobStatus(str, Enum):
     DISCOVERED = "discovered"
     DESIGNED = "designed"
     GENERATED = "generated"
+    VALIDATED = "validated"          # passes its data contract; no legacy output to compare yet
+    BLOCKED = "blocked"              # an upstream job did not pass, so this one was not run
     MATCHED = "matched"              # reconciled first time
     REPAIRED = "repaired"            # reconciled after self-repair
     NEEDS_REVIEW = "needs_review"    # repair attempts exhausted
@@ -131,6 +133,7 @@ class ReconciliationReport(BaseModel):
     tables: list[TableDiff]
     runtime_seconds: float
     engine: str                        # "local-pyspark" or "databricks-serverless"
+    golden_checked: bool = False       # True when compared with the legacy output, not just the contract
 
 
 # ---------------------------------------------------------------- 5. review

@@ -2,12 +2,18 @@
 Design agent: DiscoveryResult in, DesignSpec (layer + data contracts) out.
 
 Strategy ("rules decide structure, LLM fills details, guardrails check it"):
-  Layer / table name -> deterministic rule from the output table name.
+  Layer / table name -> deterministic rule from factory.catalog (bronze/silver/gold).
   Columns            -> taken from the discovered lineage (ground truth for which
-                        columns exist). Baseline dtype comes from the source DDL for
-                        direct copies; the LLM refines dtype / nullability / rules.
-  Primary key        -> LLM proposal, validated as a subset of the columns; falls back
-                        to the non-aggregate columns (the GROUP BY keys).
+                        columns exist). Baseline dtype is inferred from the legacy
+                        expression and the source column types (source DDL for raw
+                        tables, upstream contracts for staging tables); the LLM refines
+                        dtype / nullability / rules.
+  Primary key        -> LLM proposal, validated as a subset of the columns. Fallback:
+                        aggregates -> the GROUP BY columns; row-level tables -> the
+                        identifier columns copied from an input table's key, plus any
+                        generated columns (e.g. a year from a VALUES list).
+  SAS jobs with no lineage (no LLM) -> columns read from the golden output header,
+                        if the SAS job has been run; otherwise flagged.
 Anything the LLM invents (extra columns, bad keys, unparseable dtypes) is dropped
 and logged in `DesignResult.notes`.
 
@@ -15,22 +21,25 @@ and logged in `DesignResult.notes`.
 """
 from __future__ import annotations
 
-import json
+import csv
 import re
 import sys
-from pathlib import Path
 from typing import Optional
 
 from pydantic import BaseModel
 
+from factory import catalog
 from factory.config import ROOT, load_env
-from factory.contracts.models import (ColumnContract, DataContract, DesignSpec,
+from factory.contracts.models import (ColumnContract, ColumnLineage, DataContract, DesignSpec,
                                       DiscoveryResult, Layer)
 from factory.llm.base import LLM, get_llm
 
 DDL = ROOT / "data" / "ddl" / "create_tables.sql"
+GOLDEN = ROOT / "legacy" / "golden"
 AGG = re.compile(r"\b(SUM|COUNT|AVG|MIN|MAX)\s*\(", re.I)
 DTYPE = re.compile(r"^(string|boolean|int|bigint|double|date|timestamp|decimal\(\d{1,2},\s*\d{1,2}\))$")
+
+Types = dict[str, tuple[str, bool]]          # "schema.table.column" -> (spark dtype, nullable)
 
 
 class DesignResult(BaseModel):
@@ -42,19 +51,16 @@ class DesignResult(BaseModel):
 
 def layer_and_name(table: str) -> tuple[Layer, str]:
     """rpt.x / legacy.rpt_x -> gold.x;  stg.x / legacy.stg_x / legacy.x -> silver.x."""
-    _, name = table.lower().split(".", 1)
-    if table.lower().startswith("rpt.") or name.startswith("rpt_"):
-        return Layer.GOLD, f"gold.{re.sub(r'^rpt_', '', name)}"
-    return Layer.SILVER, f"silver.{re.sub(r'^stg_', '', name)}"
+    return catalog.layer_and_name(table)
 
 
 _SQL_TO_SPARK = {"varchar": "string", "char": "string", "date": "date", "datetime": "timestamp",
                  "int": "int", "bigint": "bigint", "float": "double", "bit": "boolean"}
 
 
-def source_types() -> dict[str, tuple[str, bool]]:
+def source_types() -> Types:
     """'dbo.table.column' -> (spark dtype, nullable), read from the legacy DDL."""
-    out: dict[str, tuple[str, bool]] = {}
+    out: Types = {}
     for m in re.finditer(r"CREATE TABLE\s+(\w+)\.(\w+)\s*\((.*?)\n\);", DDL.read_text(), re.S | re.I):
         schema, table, body = m.groups()
         for line in body.split("\n"):
@@ -68,25 +74,122 @@ def source_types() -> dict[str, tuple[str, bool]]:
     return out
 
 
-def baseline_columns(r: DiscoveryResult, table: str, types: dict) -> list[ColumnContract]:
+def source_columns_in_order() -> dict[str, list[str]]:
+    """'dbo.table' -> columns in DDL order (the first column is the table's identifier)."""
+    out: dict[str, list[str]] = {}
+    for full in source_types():
+        s, t, c = full.split(".")
+        out.setdefault(f"{s}.{t}", []).append(c)
+    return out
+
+
+def _scale(dtype: str) -> int:
+    m = re.match(r"decimal\(\d+,\s*(\d+)\)", dtype)
+    return int(m.group(1)) if m else 0
+
+
+def infer_dtype(lin: ColumnLineage, types: Types) -> tuple[str, bool]:
+    """Baseline (dtype, nullable) from the legacy expression and its source columns.
+
+    Follows SQL Server result types: SUM(decimal(p,s)) -> decimal(38,s), ROUND(x, n) keeps
+    a decimal with n places, DATEDIFF/YEAR -> int, COUNT -> bigint (Spark's count type).
+    """
+    tr = lin.transformation.strip()
+    up = tr.upper()
+
+    def resolve(src: str):
+        # staging tables designed upstream are in `types`; when a job is designed on its
+        # own, stg.x.col falls back to the raw dbo.x.col it mirrors
+        return types.get(src) or types.get(re.sub(r"^\w+\.", "dbo.", src))
+
+    known = [t for t in (resolve(s) for s in lin.source_columns) if t]
+    decimals = [t for t, _ in known if t.startswith("decimal")]
+    single = known[0] if len(lin.source_columns) == 1 and len(known) == 1 else None
+
+    if re.match(r"^COUNT\s*\(", up):
+        return "bigint", False
+    m = re.search(r"\bAS\s+(?:DECIMAL|NUMERIC)\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)\s*\)\s*$", up)
+    if m:
+        return f"decimal({m.group(1)},{m.group(2)})", True
+    if re.match(r"^DATEFROMPARTS\s*\(", up):
+        return "date", True
+    if re.match(r"^(DATEDIFF|YEAR|MONTH|DAY)\s*\(", up):
+        return "int", True
+    if re.match(r"^CASE\b.*\bTHEN\s+'", up, re.S):
+        return "string", True
+    if up.startswith("COALESCE(") and single:
+        return single[0], False
+    if decimals:
+        m = re.match(r"^ROUND\s*\(.*,\s*(\d+)\s*\)$", up, re.S)
+        if m:
+            return f"decimal(38,{m.group(1)})", True
+        if re.search(r"[*/]", up):
+            return "decimal(38,6)", True
+        if AGG.search(up) or re.search(r"[+\-]|\bCASE\b", up):
+            return f"decimal(38,{max(_scale(d) for d in decimals)})", True
+    if single and not re.search(r"[+\-*/]|\bCASE\b|\(", tr):        # plain copy
+        return single
+    if single and re.match(r"^(UPPER|LOWER|LTRIM|RTRIM|TRIM)\s*\(", up) and single[0] == "string":
+        return single
+    if single and AGG.search(up):                                    # MIN / MAX keep the type
+        return single[0], True
+    name = lin.target_column
+    computed = not lin.source_columns or not single or tr.lower() != lin.source_columns[0].split(".")[-1]
+    if computed and re.search(r"(^|_)(year|days|count)(_|$)", name) and all(t == "date" for t, _ in known):
+        return "int", True              # date arithmetic or a generated year / day count
+    return "string", True
+
+
+def baseline_columns(r: DiscoveryResult, table: str, types: Types) -> list[ColumnContract]:
     cols = []
     for lin in (c for c in r.column_lineage if c.target_table == table):
-        dtype, nullable = "string", True
-        src = lin.source_columns[0] if len(lin.source_columns) == 1 else None
-        # staging tables mirror their dbo source, so stg.x.col falls back to dbo.x.col
-        src = src if src in types else (re.sub(r"^\w+\.", "dbo.", src) if src else None)
-        if lin.transformation.upper().startswith("COUNT"):
-            dtype, nullable = "bigint", False
-        elif src in types and not re.search(r"\b(CASE|AVG|COUNT)\b|[+*/]", lin.transformation, re.I):
-            dtype, nullable = types[src]            # copy, SUM, MIN, MAX keep the source type
+        dtype, nullable = infer_dtype(lin, types)
         cols.append(ColumnContract(name=lin.target_column, dtype=dtype, nullable=nullable))
     return cols
 
 
-def fallback_key(r: DiscoveryResult, table: str, cols: list[ColumnContract]) -> list[str]:
-    non_agg = [c.target_column for c in r.column_lineage
-               if c.target_table == table and not AGG.search(c.transformation)]
-    return non_agg or [c.name for c in cols]
+def fallback_key(r: DiscoveryResult, table: str, cols: list[ColumnContract],
+                 table_columns: dict[str, list[str]]) -> list[str]:
+    lins = [c for c in r.column_lineage if c.target_table == table]
+    if any(AGG.search(c.transformation) for c in lins):          # aggregate -> GROUP BY columns
+        return [c.target_column for c in lins if not AGG.search(c.transformation)]
+    ids = []
+    for c in lins:                                               # copies of an input table's id
+        if len(c.source_columns) == 1:
+            s, t, col = c.source_columns[0].split(".")
+            order = table_columns.get(f"{s}.{t}", [])
+            if order and order[0] == col == c.target_column:
+                ids.append(c.target_column)
+    generated = [c.target_column for c in lins if not c.source_columns
+                 and not re.search(r"count|sum|total", c.transformation, re.I)]
+    return ids + generated if ids else [c.name for c in cols]
+
+
+def golden_header_columns(table: str, notes: list[str]) -> list[ColumnContract]:
+    """SAS output with no lineage: read columns (and rough types) from the golden CSV."""
+    name = table.split(".", 1)[1]
+    path = GOLDEN / f"{name}.csv"
+    if not path.exists():
+        notes.append(f"no lineage and no golden output for {table}: run discovery with an LLM "
+                     f"or run the SAS job first")
+        return []
+    with path.open(newline="") as f:
+        rows = list(csv.reader(f))
+    header, sample = rows[0], rows[1:200]
+    cols = []
+    for i, col in enumerate(header):
+        vals = [r[i] for r in sample if i < len(r) and r[i].strip() not in ("", ".")]
+        if vals and all(re.fullmatch(r"\d{4}-\d{2}-\d{2}", v) for v in vals):
+            dtype = "date"
+        elif vals and all(re.fullmatch(r"-?\d+", v) for v in vals):
+            dtype = "bigint"
+        elif vals and all(re.fullmatch(r"-?\d*\.\d+", v) or re.fullmatch(r"-?\d+", v) for v in vals):
+            dtype = f"decimal(38,{max(len(v.split('.')[1]) if '.' in v else 0 for v in vals)})"
+        else:
+            dtype = "string"
+        cols.append(ColumnContract(name=col.lower(), dtype=dtype, nullable=True))
+    notes.append(f"{table}: columns taken from golden output header (no lineage available)")
+    return cols
 
 
 # ============================================================== LLM
@@ -117,14 +220,16 @@ Money is decimal, never double. A column wrapped in COALESCE or filtered NOT NUL
 Counts are bigint and not nullable."""
 
 
-def design_table(r: DiscoveryResult, table: str, llm: LLM, types: dict,
-                 notes: list[str]) -> tuple[DataContract, str]:
+def design_table(r: DiscoveryResult, table: str, llm: LLM, types: Types,
+                 table_columns: dict[str, list[str]], notes: list[str]) -> tuple[DataContract, str]:
     layer, new_name = layer_and_name(table)
     base = baseline_columns(r, table, types)
+    if not base:
+        base = golden_header_columns(table, notes)
     by_name = {c.name: c for c in base}
-    key = fallback_key(r, table, base)
+    key = fallback_key(r, table, base, table_columns)
 
-    if llm.available:
+    if llm.available and r.column_lineage:
         listing = "\n".join(
             f"- {c.target_column}: {c.transformation}  <- {', '.join(c.source_columns) or '(none)'}"
             f"  [baseline {by_name[c.target_column].dtype}]"
@@ -148,27 +253,36 @@ def design_table(r: DiscoveryResult, table: str, llm: LLM, types: dict,
             key = proposed
         else:
             notes.append(f"guardrail: primary key {proposed} invalid for {new_name}, "
-                         f"using GROUP BY columns {key}")
-    else:
+                         f"using fallback key {key}")
+    elif not llm.available:
         notes.append("no LLM configured: contract built from parser baseline only")
 
     for k in key:                                   # a key column can never be null
-        c = by_name[k]
-        by_name[k] = c.model_copy(update={"nullable": False})
-    return DataContract(table=new_name, primary_key=key, columns=list(by_name.values())), new_name
+        if k in by_name:
+            by_name[k] = by_name[k].model_copy(update={"nullable": False})
+    return DataContract(table=new_name, primary_key=[k for k in key if k in by_name],
+                        columns=list(by_name.values())), new_name
 
 
 # ============================================================== main
 
-def design(r: DiscoveryResult, llm: Optional[LLM] = None) -> DesignResult:
+def design(r: DiscoveryResult, llm: Optional[LLM] = None, types: Optional[Types] = None,
+           table_columns: Optional[dict[str, list[str]]] = None) -> DesignResult:
+    """Design one job. Pass `types` / `table_columns` shared across jobs (in wave order) so
+    staging tables designed upstream supply the types of their columns downstream."""
     llm = llm or get_llm()
-    types, notes = source_types(), []
+    types = types if types is not None else source_types()
+    table_columns = table_columns if table_columns is not None else source_columns_in_order()
+    notes: list[str] = []
     contracts, names, layers = [], [], set()
     for table in r.output_tables:
-        contract, name = design_table(r, table, llm, types, notes)
+        contract, name = design_table(r, table, llm, types, table_columns, notes)
         contracts.append(contract)
         names.append(name)
         layers.add(layer_and_name(table)[0])
+        table_columns[table] = [c.name for c in contract.columns]   # feed downstream jobs
+        for c in contract.columns:
+            types[f"{table}.{c.name}"] = (c.dtype, c.nullable)
     layer = Layer.GOLD if Layer.GOLD in layers else Layer.SILVER
     return DesignResult(spec=DesignSpec(job_id=r.job_id, layer=layer, target_tables=names,
                                         contracts=contracts), notes=notes)
@@ -180,12 +294,15 @@ def main() -> None:
     llm = get_llm()
     out = run_dir / "design"
     out.mkdir(exist_ok=True)
-    for f in sorted((run_dir / "discovery").glob("J*.json")):
-        r = DiscoveryResult.model_validate_json(f.read_text())
-        res = design(r, llm)
-        (out / f.name).write_text(res.model_dump_json(indent=2))
+    results = [DiscoveryResult.model_validate_json(f.read_text())
+               for f in sorted((run_dir / "discovery").glob("J*.json"))]
+    catalog.check_no_collisions([t for r in results for t in r.output_tables])
+    types, table_columns = source_types(), source_columns_in_order()
+    for r in sorted(results, key=lambda x: (x.wave or 0, x.job_id)):     # upstream first
+        res = design(r, llm, types, table_columns)
+        (out / f"{r.job_id}.json").write_text(res.model_dump_json(indent=2))
         print(f"  {r.job_id:34s} {res.spec.layer.value:7s} {', '.join(res.spec.target_tables)}"
-              f"  ({len(res.notes)} notes)")
+              f"  key={res.spec.contracts[0].primary_key if res.spec.contracts else []}")
 
 
 if __name__ == "__main__":

@@ -53,8 +53,38 @@ cp .env.example .env                      # add GEMINI_API_KEY
 python -m data.generator.generate         # synthetic data -> data/raw/
 python -m factory.agents.discovery        # Stage 1 -> runs/<run_id>/discovery/
 python -m eval.score_discovery runs/<run_id>
+python -m factory.agents.design runs/<run_id>    # Stage 2 -> runs/<run_id>/design/
+python -m factory.mapping_doc runs/<run_id>      # -> docs/source_to_target_mapping.md
+python -m factory.bronze                         # raw CSVs -> bronze layer (needs pyspark + Java)
+python -m factory.agents.migrate runs/<run_id>   # Stages 3-4: LLM writes, runs, checks and fixes
+                                                 # each job; passing output -> silver / gold
 pytest -q
 ```
 
 Legacy golden outputs (needs Docker + SAS OnDemand): see `docs/legacy_jobs_answer_key.md`.
 `eval/answer_key.yaml` is ground truth for scoring only and is never shown to an agent.
+
+## Migration agent
+
+`factory/agents/migrate.py` builds silver and gold job by job, in wave order:
+the translation agent (LLM) writes the PySpark code, the code is safety-checked
+(no file, network, process or eval access) and run on the lakehouse inputs, and the
+output is checked against its data contract and, when `legacy/golden/` has it, the
+legacy output (row counts, column totals, row-level diff on the primary key).
+Any crash or difference goes back to the LLM to fix, up to 3 attempts; then the job is
+flagged for review and its downstream jobs are blocked. Every attempt's code and
+report is kept under `migrated/<job>/attempts/` and `runs/<run_id>/migrate/`.
+
+## Lakehouse layers
+
+| Layer | Holds | Legacy source |
+|---|---|---|
+| bronze | raw extracts, typed from the legacy DDL, plus `_ingested_at`, `_source_file` | `dbo.*` |
+| silver | cleaned / conformed / intermediate tables | `stg.*`, SAS staging |
+| gold | report-ready tables | `rpt.*`, SAS reports |
+
+`factory/catalog.py` is the single legacy-to-lakehouse name mapping; full table and column
+mapping is in [`docs/source_to_target_mapping.md`](docs/source_to_target_mapping.md).
+Locally tables are parquet under `lakehouse/`; with `SPARK_ENGINE=databricks` they are Delta
+tables `workspace.<layer>.<table>` in Unity Catalog. For Databricks, create a volume
+`workspace.bronze.raw`, upload `data/raw/*.csv` to it, and set `RAW_PATH=/Volumes/workspace/bronze/raw`.

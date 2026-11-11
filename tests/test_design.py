@@ -81,5 +81,62 @@ def test_without_llm_uses_parser_baseline():
             return False
     res = d.design(j12(), NoLLM({}))
     c = res.spec.contracts[0]
-    assert next(x for x in c.columns if x.name == "total_reserve").dtype == "decimal(18,2)"
+    # SQL Server SUM(decimal(18,2)) returns decimal(38,2)
+    assert next(x for x in c.columns if x.name == "total_reserve").dtype == "decimal(38,2)"
     assert any("no LLM" in n for n in res.notes)
+
+
+# ------------------------------------------------------------- fallbacks on the real 12 jobs
+
+def _design_all(monkeypatch=None):
+    from factory.agents import discovery
+    from factory.llm.base import EchoLLM
+    found = discovery.discover(EchoLLM())
+    types, cols = d.source_types(), d.source_columns_in_order()
+    out = {}
+    for r in sorted(found.values(), key=lambda x: (x.wave, x.job_id)):
+        res = d.design(r, EchoLLM(), types, cols)
+        for c in res.spec.contracts:
+            out[c.table] = c
+    return out
+
+
+def test_fallback_keys_are_real_identifiers():
+    c = _design_all()
+    assert c["silver.customers"].primary_key == ["customer_id"]
+    assert c["silver.claims"].primary_key == ["claim_id"]
+    assert c["silver.policy_earned_premium"].primary_key == ["policy_id", "policy_year"]
+    assert c["gold.broker_commission"].primary_key == ["broker_id", "written_year"]
+
+
+def test_nullable_source_columns_stay_nullable():
+    c = _design_all()
+    col = lambda t, n: next(x for x in c[t].columns if x.name == n)
+    assert col("silver.claims", "reserve_amount").nullable
+    assert col("silver.premiums", "paid_date").nullable
+    assert not col("silver.policies", "end_date").nullable        # COALESCE(end_date, 9999-12-31)
+
+
+def test_computed_column_types():
+    c = _design_all()
+    dt = lambda t, n: next(x for x in c[t].columns if x.name == n).dtype
+    assert dt("silver.customers", "age_years") == "int"            # DATEDIFF(YEAR, ...)
+    assert dt("silver.claims", "claim_age_days") == "int"
+    assert dt("silver.policy_earned_premium", "days_in_force") == "int"
+    assert dt("silver.policy_earned_premium", "earned_premium") == "decimal(38,2)"   # ROUND(..., 2)
+    assert dt("gold.premium_collections", "arrears") == "decimal(38,3)"
+    assert dt("gold.premium_collections", "collection_rate_pct") == "decimal(9,2)"   # CAST AS DECIMAL(9,2)
+    assert dt("gold.broker_commission", "written_year") == "int"
+
+
+def test_sas_without_lineage_uses_golden_header(tmp_path, monkeypatch):
+    (tmp_path / "claim_totals.csv").write_text(
+        "claim_id,loss_date,payment_count,total_paid,small_claim_flag\n"
+        "CL1,2024-01-02,2,105.50,Y\nCL2,,1,,Y\n")
+    monkeypatch.setattr(d, "GOLDEN", tmp_path)
+    notes = []
+    cols = d.golden_header_columns("legacy.claim_totals", notes)
+    assert [(x.name, x.dtype) for x in cols] == [
+        ("claim_id", "string"), ("loss_date", "date"), ("payment_count", "bigint"),
+        ("total_paid", "decimal(38,2)"), ("small_claim_flag", "string")]
+    assert "golden output header" in notes[0]
