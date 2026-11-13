@@ -320,6 +320,8 @@ def main() -> None:
         (out / f"{r.job_id}.json").write_text(res.model_dump_json(indent=2))
         print(f"  {r.job_id:34s} {res.spec.layer.value:7s} {', '.join(res.spec.target_tables)}"
               f"  key={res.spec.contracts[0].primary_key if res.spec.contracts else []}")
+    from factory import mapping_excel
+    mapping_excel.refresh(run_dir)
 
 
 if __name__ == "__main__":
