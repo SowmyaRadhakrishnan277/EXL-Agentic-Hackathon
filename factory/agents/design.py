@@ -165,6 +165,19 @@ def fallback_key(r: DiscoveryResult, table: str, cols: list[ColumnContract],
     return ids + generated if ids else [c.name for c in cols]
 
 
+def golden_key(table: str, cols: list[str]) -> list[str]:
+    """Shortest run of leading columns that is unique in the legacy output (empty if none)."""
+    path = GOLDEN / f"{table.split('.', 1)[1]}.csv"
+    if not path.exists():
+        return []
+    with path.open(newline="") as f:
+        rows = list(csv.reader(f))[1:]
+    for n in range(1, min(len(cols), 4) + 1):
+        if len({tuple(r[:n]) for r in rows}) == len(rows):
+            return cols[:n]
+    return []
+
+
 def golden_header_columns(table: str, notes: list[str]) -> list[ColumnContract]:
     """SAS output with no lineage: read columns (and rough types) from the golden CSV."""
     name = table.split(".", 1)[1]
@@ -224,10 +237,14 @@ def design_table(r: DiscoveryResult, table: str, llm: LLM, types: Types,
                  table_columns: dict[str, list[str]], notes: list[str]) -> tuple[DataContract, str]:
     layer, new_name = layer_and_name(table)
     base = baseline_columns(r, table, types)
-    if not base:
+    from_golden = not base
+    if from_golden:
         base = golden_header_columns(table, notes)
     by_name = {c.name: c for c in base}
     key = fallback_key(r, table, base, table_columns)
+    if from_golden and base:
+        key = golden_key(table, [c.name for c in base]) or key
+        notes.append(f"{new_name}: primary key {key} found from uniqueness in the legacy output")
 
     if llm.available and r.column_lineage:
         listing = "\n".join(
