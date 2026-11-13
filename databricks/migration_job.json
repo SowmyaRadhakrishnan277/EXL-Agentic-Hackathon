@@ -1,0 +1,203 @@
+{
+  "name": "EXL migration factory - silver and gold",
+  "max_concurrent_runs": 1,
+  "tags": {
+    "project": "exl-hackathon-challenge-03"
+  },
+  "tasks": [
+    {
+      "task_key": "J01_stg_customers",
+      "description": "Wave 1: legacy TSQL job J01 -> silver.customers",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J01",
+          "check_golden": "yes"
+        }
+      }
+    },
+    {
+      "task_key": "J02_stg_policies",
+      "description": "Wave 1: legacy TSQL job J02 -> silver.policies",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J02",
+          "check_golden": "yes"
+        }
+      }
+    },
+    {
+      "task_key": "J03_stg_premiums",
+      "description": "Wave 1: legacy TSQL job J03 -> silver.premiums",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J03",
+          "check_golden": "yes"
+        }
+      }
+    },
+    {
+      "task_key": "J04_stg_claim_payments",
+      "description": "Wave 1: legacy SAS job J04 -> silver.claim_payments",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J04",
+          "check_golden": "yes"
+        }
+      }
+    },
+    {
+      "task_key": "J05_stg_claims",
+      "description": "Wave 1: legacy TSQL job J05 -> silver.claims",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J05",
+          "check_golden": "yes"
+        }
+      }
+    },
+    {
+      "task_key": "J06_stg_policy_earned_premium",
+      "description": "Wave 2: legacy TSQL job J06 -> silver.policy_earned_premium",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J06",
+          "check_golden": "yes"
+        }
+      },
+      "depends_on": [
+        {
+          "task_key": "J02_stg_policies"
+        }
+      ]
+    },
+    {
+      "task_key": "J07_stg_claim_totals",
+      "description": "Wave 2: legacy SAS job J07 -> silver.claim_totals",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J07",
+          "check_golden": "yes"
+        }
+      },
+      "depends_on": [
+        {
+          "task_key": "J04_stg_claim_payments"
+        },
+        {
+          "task_key": "J05_stg_claims"
+        }
+      ]
+    },
+    {
+      "task_key": "J08_rpt_monthly_claims_paid",
+      "description": "Wave 2: legacy TSQL job J08 -> gold.monthly_claims_paid",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J08",
+          "check_golden": "yes"
+        }
+      },
+      "depends_on": [
+        {
+          "task_key": "J02_stg_policies"
+        },
+        {
+          "task_key": "J05_stg_claims"
+        }
+      ]
+    },
+    {
+      "task_key": "J09_rpt_premium_collections",
+      "description": "Wave 2: legacy TSQL job J09 -> gold.premium_collections",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J09",
+          "check_golden": "yes"
+        }
+      },
+      "depends_on": [
+        {
+          "task_key": "J03_stg_premiums"
+        }
+      ]
+    },
+    {
+      "task_key": "J11_rpt_broker_commission",
+      "description": "Wave 2: legacy TSQL job J11 -> gold.broker_commission",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J11",
+          "check_golden": "yes"
+        }
+      },
+      "depends_on": [
+        {
+          "task_key": "J02_stg_policies"
+        }
+      ]
+    },
+    {
+      "task_key": "J12_rpt_open_reserves",
+      "description": "Wave 2: legacy TSQL job J12 -> gold.open_reserves",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J12",
+          "check_golden": "yes"
+        }
+      },
+      "depends_on": [
+        {
+          "task_key": "J02_stg_policies"
+        },
+        {
+          "task_key": "J05_stg_claims"
+        }
+      ]
+    },
+    {
+      "task_key": "J10_rpt_loss_ratio",
+      "description": "Wave 3: legacy SAS job J10 -> gold.loss_ratio",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/<your-email>/02_run_silver_gold",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "job_id": "J10",
+          "check_golden": "yes"
+        }
+      },
+      "depends_on": [
+        {
+          "task_key": "J02_stg_policies"
+        },
+        {
+          "task_key": "J06_stg_policy_earned_premium"
+        },
+        {
+          "task_key": "J07_stg_claim_totals"
+        }
+      ]
+    }
+  ]
+}

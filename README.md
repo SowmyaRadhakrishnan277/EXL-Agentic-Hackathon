@@ -75,6 +75,22 @@ Any crash or difference goes back to the LLM to fix, up to 3 attempts; then the 
 flagged for review and its downstream jobs are blocked. Every attempt's code and
 report is kept under `migrated/<job>/attempts/` and `runs/<run_id>/migrate/`.
 
+## Reference translations
+
+`reference_jobs/jobs.py` holds hand-written PySpark translations of all 12 legacy jobs, in the
+same `run(spark, tables)` shape as the agents' output. They reproduce each planted trap the way
+the legacy system behaves (pinned by `tests/test_reference_jobs.py`), give the demo a known-good
+silver/gold build, and serve as a baseline to compare the agents' code against.
+
+```bash
+python -m reference_jobs.run                    # build silver + gold from bronze
+python -m reference_jobs.run runs/<run_id>      # + check every table against legacy/golden/
+```
+
+On Databricks: import `databricks/01_setup_bronze.py` and `databricks/02_run_silver_gold.py`
+(generated from the module by `databricks/build_notebook.py`), or create the Job in
+`databricks/migration_job.json`: one task per legacy job, wired by the discovered lineage.
+
 ## Lakehouse layers
 
 | Layer | Holds | Legacy source |

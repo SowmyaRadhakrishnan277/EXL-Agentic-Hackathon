@@ -65,7 +65,7 @@ def main() -> None:
         subprocess.run(["docker", "cp", str(RAW / f"{t}.csv"), f"{c}:/tmp/load/{t}.csv"], check=True)
         sql = (f"BULK INSERT InsuranceLegacy.dbo.{t} FROM '/tmp/load/{t}.csv' "
                "WITH (FORMAT='CSV', FIRSTROW=2, FIELDTERMINATOR=',', ROWTERMINATOR='0x0a', "
-               "KEEPNULLS, TABLOCK, CODEPAGE='65001');")
+               "KEEPNULLS, TABLOCK);")
         _sqlcmd(c, pw, ["-Q", sql])
         n = _sqlcmd(c, pw, ["-h", "-1", "-W", "-Q", f"SET NOCOUNT ON; SELECT COUNT(*) FROM InsuranceLegacy.dbo.{t}"])
         print(f"{t:15s} {n.strip():>8s} rows")
