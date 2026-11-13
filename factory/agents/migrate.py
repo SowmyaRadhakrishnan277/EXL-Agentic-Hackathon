@@ -215,6 +215,8 @@ def main() -> None:
     llm = get_llm()
     print(f"Migration run {run_dir.name}  (LLM {llm.provider}/{llm.model}, engine {engine_name()})")
     migrate(run_dir, llm, only=set(sys.argv[2:]) or None)
+    from factory import mapping_excel
+    mapping_excel.refresh(run_dir)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 """
 Generate the source-to-target mapping document from a run's discovery + design output.
 
-    python -m factory.mapping_doc runs/<run_id>     # -> docs/source_to_target_mapping.md
+    python -m factory.mapping_doc runs/<run_id>     # -> docs/source_to_target_mapping.md and .xlsx
 
 Everything in the document comes from the agents' JSON, so re-running after a Gemini
 run (or a code change) refreshes it; nothing is hand-maintained.
@@ -117,6 +117,8 @@ def main() -> None:
     run_dir = ROOT / sys.argv[1]
     OUT.write_text(build(run_dir))
     print(f"Wrote {OUT.relative_to(ROOT)}")
+    from factory import mapping_excel
+    print(f"Wrote {mapping_excel.write(run_dir).relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

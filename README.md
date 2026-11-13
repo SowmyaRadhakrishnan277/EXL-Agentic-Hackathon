@@ -54,7 +54,7 @@ python -m data.generator.generate         # synthetic data -> data/raw/
 python -m factory.agents.discovery        # Stage 1 -> runs/<run_id>/discovery/
 python -m eval.score_discovery runs/<run_id>
 python -m factory.agents.design runs/<run_id>    # Stage 2 -> runs/<run_id>/design/
-python -m factory.mapping_doc runs/<run_id>      # -> docs/source_to_target_mapping.md
+python -m factory.mapping_doc runs/<run_id>      # -> docs/source_to_target_mapping.md + .xlsx
 python -m factory.bronze                         # raw CSVs -> bronze layer (needs pyspark + Java)
 python -m factory.agents.migrate runs/<run_id>   # Stages 3-4: LLM writes, runs, checks and fixes
                                                  # each job; passing output -> silver / gold
@@ -100,7 +100,10 @@ On Databricks: import `databricks/01_setup_bronze.py` and `databricks/02_run_sil
 | gold | report-ready tables | `rpt.*`, SAS reports |
 
 `factory/catalog.py` is the single legacy-to-lakehouse name mapping; full table and column
-mapping is in [`docs/source_to_target_mapping.md`](docs/source_to_target_mapping.md).
+mapping is in [`docs/source_to_target_mapping.md`](docs/source_to_target_mapping.md) and
+`docs/source_to_target_mapping.xlsx` (Overview, Table / Job / Column Mapping, and a Migration
+Status sheet once the migration agent has run). The design and migration agents regenerate the
+workbook automatically at the end of each run.
 Locally tables are parquet under `lakehouse/`; with `SPARK_ENGINE=databricks` they are Delta
 tables `workspace.<layer>.<table>` in Unity Catalog. For Databricks, create a volume
 `workspace.bronze.raw`, upload `data/raw/*.csv` to it, and set `RAW_PATH=/Volumes/workspace/bronze/raw`.
