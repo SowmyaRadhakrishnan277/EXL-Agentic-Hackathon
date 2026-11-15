@@ -453,6 +453,8 @@ def main() -> None:
             print(f"  dashboard: {page.relative_to(ROOT)}" + ("  (opened in the browser)" if opened else ""))
         except Exception as e:                   # the run itself is done: never fail it here
             print(f"  dashboard not built: {type(e).__name__}: {e}")
+    from factory import mapping_excel
+    mapping_excel.refresh(run_dir)
 
 
 if __name__ == "__main__":
