@@ -192,6 +192,27 @@ def golden_header_columns(table: str, notes: list[str]) -> list[ColumnContract]:
     return cols
 
 
+def golden_profile(table: str) -> tuple[dict[str, int], dict[str, int]]:
+    """From the legacy output: ({column: NULL count}, {column: max decimal places}).
+    NULL = empty or SAS '.'. Both empty when the legacy job has not been run (no golden file)."""
+    from factory.agents.reconcile import golden_path
+    path = golden_path(table)
+    nulls: dict[str, int] = {}
+    places: dict[str, int] = {}
+    if not path.exists():
+        return nulls, places
+    with path.open(newline="") as f:
+        for row in csv.DictReader(f):
+            for col, v in row.items():
+                col, v = col.lower(), (v or "").strip()
+                if v in ("", "."):
+                    nulls[col] = nulls.get(col, 0) + 1
+                elif re.fullmatch(r"-?\d*\.\d+", v):          # significant places: SQL Server
+                    sig = len(v.split(".")[1].rstrip("0"))      # pads ROUND(x,2) to the type's scale
+                    places[col] = max(places.get(col, 0), sig)
+    return nulls, places
+
+
 # ============================================================== LLM
 
 SYSTEM = """You are a data architect designing a lakehouse data contract for a table
@@ -257,9 +278,20 @@ def design_table(r: DiscoveryResult, table: str, llm: LLM, types: Types,
     elif not llm.available:
         notes.append("no LLM configured: contract built from parser baseline only")
 
-    for k in key:                                   # a key column can never be null
-        if k in by_name:
+    golden_nulls, golden_places = golden_profile(table)
+    for k in key:                                   # key columns are NOT NULL, unless legacy has
+        if k in by_name and k not in golden_nulls:  # a NULL group (GROUP BY on NULL is its own row)
             by_name[k] = by_name[k].model_copy(update={"nullable": False})
+    for name, col in list(by_name.items()):         # guardrails: legacy output is the source of truth
+        if not col.nullable and name in golden_nulls:
+            col = by_name[name] = col.model_copy(update={"nullable": True})
+            notes.append(f"guardrail: {new_name}.{name} kept nullable: legacy output has "
+                         f"{golden_nulls[name]} NULL values")
+        if col.dtype.startswith("decimal") and golden_places.get(name, 0) > _scale(col.dtype):
+            wider = f"decimal(38,{golden_places[name]})"
+            notes.append(f"guardrail: {new_name}.{name} widened {col.dtype} -> {wider}: legacy output "
+                         f"has {golden_places[name]} decimal places")
+            by_name[name] = col.model_copy(update={"dtype": wider})
     return DataContract(table=new_name, primary_key=[k for k in key if k in by_name],
                         columns=list(by_name.values())), new_name
 

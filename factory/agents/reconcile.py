@@ -13,6 +13,7 @@ as feedback when it has to fix its code.
 """
 from __future__ import annotations
 
+import os
 import re
 import time
 from pathlib import Path
@@ -81,10 +82,20 @@ def contract_violations(df, contract: DataContract) -> list[str]:
     return out
 
 
+def _spark_path(path: Path) -> str:
+    """Where Spark reads a golden CSV. Locally the file itself; on Databricks (Connect runs the
+    read on the cluster, which cannot see this machine) the same file name in a UC volume:
+    GOLDEN_PATH, default /Volumes/<UC_CATALOG>/bronze/golden (upload legacy/golden/*.csv there)."""
+    if os.getenv("SPARK_ENGINE") != "databricks":
+        return str(path)
+    base = os.getenv("GOLDEN_PATH") or f"/Volumes/{os.getenv('UC_CATALOG') or 'workspace'}/bronze/golden"
+    return f"{base.rstrip('/')}/{path.name}"
+
+
 def _read_golden(spark, path: Path, contract: DataContract):
     """Legacy output CSV, every column cast to its contract type (empty or SAS '.' = NULL)."""
     from pyspark.sql import functions as F
-    raw = spark.read.option("header", True).csv(str(path))      # strings; empty -> NULL
+    raw = spark.read.option("header", True).csv(_spark_path(path))   # strings; empty -> NULL
     cols = {c.lower(): c for c in raw.columns}
     sel = []
     for c in contract.columns:
@@ -125,8 +136,14 @@ def compare_with_golden(spark, df, legacy_table: str, contract: DataContract) ->
     if key:
         values = [c for c in cols if c not in key]
         L = legacy.select(*key, *[F.col(c).alias(f"legacy_{c}") for c in values]).withColumn("_l", F.lit(1))
-        M = mig.select(*key, *[F.col(c).alias(f"migrated_{c}") for c in values]).withColumn("_m", F.lit(1))
-        j = L.join(M, on=key, how="full_outer")
+        M = mig.select(*[F.col(k).alias(f"_mkey_{k}") for k in key],
+                       *[F.col(c).alias(f"migrated_{c}") for c in values]).withColumn("_m", F.lit(1))
+        on = F.col(key[0]).eqNullSafe(F.col(f"_mkey_{key[0]}"))     # NULL-safe: a NULL group key
+        for k in key[1:]:                                           # (e.g. unknown year) must match
+            on = on & F.col(k).eqNullSafe(F.col(f"_mkey_{k}"))
+        j = L.join(M, on, "full_outer")
+        for k in key:
+            j = j.withColumn(k, F.coalesce(F.col(k), F.col(f"_mkey_{k}"))).drop(f"_mkey_{k}")
         bad = F.col("_l").isNull() | F.col("_m").isNull()
         for c in values:
             bad = bad | ~F.col(f"legacy_{c}").eqNullSafe(F.col(f"migrated_{c}"))
@@ -136,9 +153,11 @@ def compare_with_golden(spark, df, legacy_table: str, contract: DataContract) ->
             d = r.asDict()
             s = {k: d[k] for k in key}
             if d["_l"] is None:
-                s["problem"] = "row only in migrated output"
+                s["problem"] = "row only in migrated output (legacy does not produce it)"
+                s["migrated_row"] = {c: d[f"migrated_{c}"] for c in values}
             elif d["_m"] is None:
-                s["problem"] = "row missing from migrated output"
+                s["problem"] = "row missing from migrated output (legacy produces it)"
+                s["legacy_row"] = {c: d[f"legacy_{c}"] for c in values}
             else:
                 for c in values:
                     if d[f"legacy_{c}"] != d[f"migrated_{c}"]:
@@ -151,6 +170,40 @@ def compare_with_golden(spark, df, legacy_table: str, contract: DataContract) ->
             [{"problem": "row missing from migrated output", **r.asDict()} for r in only_l.limit(SAMPLES // 2).collect()]
             + [{"problem": "row only in migrated output", **r.asDict()} for r in only_m.limit(SAMPLES // 2).collect()])
     return diff
+
+
+EVIDENCE_KEYS = 3      # sample mismatches to look up
+EVIDENCE_ROWS = 9      # input rows attached per table
+
+
+def add_evidence(report: ReconciliationReport, inputs: dict, contracts: list[DataContract]) -> None:
+    """Attach the INPUT rows behind the first sample mismatches of each table that differs.
+
+    The repair prompt then shows the model why a row behaved differently (a NULL amount, a status
+    with a trailing space, a duplicate key) instead of leaving it to guess from the key alone.
+    Looked up by the output's primary key in every input table that has those columns; keys are
+    matched ignoring case and surrounding spaces so a messy key still finds its rows."""
+    from pyspark.sql import functions as F
+    keys = {c.table: c.primary_key for c in contracts}
+    for t in report.tables:
+        key = keys.get(t.table) or []
+        samples = [s for s in t.sample_mismatches if all(k in s for k in key)][:EVIDENCE_KEYS]
+        if not key or not samples:
+            continue
+        for name, df in inputs.items():
+            cols = {c.lower(): c for c in df.columns}
+            if not all(k in cols for k in key):
+                continue
+            cond = None
+            for s in samples:
+                one = None
+                for k in key:
+                    want = F.lit(None if s[k] is None else str(s[k]).strip().upper())
+                    e = F.upper(F.trim(F.col(f"`{cols[k]}`").cast("string"))).eqNullSafe(want)
+                    one = e if one is None else one & e
+                cond = one if cond is None else cond | one
+            for r in df.filter(cond).limit(EVIDENCE_ROWS).collect():
+                t.input_rows.append({"input_table": name, **r.asDict()})
 
 
 def check(spark, job_id: str, attempt: int, outputs: dict, contracts: list[DataContract],

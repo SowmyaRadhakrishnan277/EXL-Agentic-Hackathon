@@ -123,6 +123,7 @@ class TableDiff(BaseModel):
     column_total_diffs: dict[str, float] = {}   # column -> legacy_sum - migrated_sum
     mismatched_keys: int = 0
     sample_mismatches: list[dict] = []          # up to ~10 rows, legacy vs migrated
+    input_rows: list[dict] = []                 # INPUT rows behind the first sample mismatches (repair evidence)
     contract_violations: list[str] = []
 
 

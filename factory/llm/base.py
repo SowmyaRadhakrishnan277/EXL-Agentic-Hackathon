@@ -18,6 +18,10 @@ from pathlib import Path
 CACHE = Path(__file__).resolve().parents[2] / "runs" / "llm_cache"
 
 
+class LLMBudgetError(RuntimeError):
+    """The provider's request budget for today is used up. Callers stop cleanly, not half way."""
+
+
 class LLM(ABC):
     provider: str = "base"
     model: str = "none"
@@ -42,7 +46,13 @@ class LLM(ABC):
     def complete_json(self, system: str, prompt: str, temperature: float = 0.0) -> dict:
         text = self.complete(system, prompt, temperature, json_mode=True)
         text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
-        return json.loads(text)
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:               # prose around the object: take the outermost {...}
+            a, b = text.find("{"), text.rfind("}")
+            if a < 0 or b <= a:
+                raise
+            return json.loads(text[a:b + 1])
 
     @property
     def available(self) -> bool:
@@ -70,7 +80,7 @@ def register(name: str, cls: type[LLM]) -> None:
 
 
 def get_llm(name: str | None = None) -> LLM:
-    from . import gemini  # noqa: F401  (registers "gemini")
+    from . import gemini, ollama, openrouter  # noqa: F401  (each registers its provider)
     name = name or os.getenv("LLM_PROVIDER", "echo")
     if name not in _REGISTRY:
         raise ValueError(f"Unknown LLM provider '{name}'. Registered: {sorted(_REGISTRY)}")
