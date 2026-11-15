@@ -27,6 +27,7 @@ For every legacy job, as soon as its upstream jobs have passed:
     python -m factory.agents.migrate runs/<run_id> --failed  # rerun only jobs that did not pass
                                                              # last time (passed ones are kept)
     ... --no-tests        # skip writing test_job.py for passed jobs (one LLM call per job saved)
+    ... --no-dashboard    # do not build and open the review dashboard when the run ends
     ... --escalate=openrouter   # (or LLM_ESCALATE=openrouter) a job the main model cannot get to
                                 # reconcile is handed to this second model, with everything tried so
                                 # far. Local model first, hosted quota only for the hard jobs.
@@ -444,6 +445,14 @@ def main() -> None:
             print(f"  jobs that fail on {llm.provider} escalate to {escalate.provider}/{escalate.model}"
                   + (f"  ({left} requests left today)" if left is not None else ""))
     migrate(run_dir, llm, only=only or None, tests="--no-tests" not in flags, escalate=escalate)
+    if "--no-dashboard" not in flags:            # the review page for this run, opened in the browser
+        try:
+            from factory.agents import dashboard
+            page = dashboard.build(run_dir)
+            opened = dashboard.show(page)
+            print(f"  dashboard: {page.relative_to(ROOT)}" + ("  (opened in the browser)" if opened else ""))
+        except Exception as e:                   # the run itself is done: never fail it here
+            print(f"  dashboard not built: {type(e).__name__}: {e}")
 
 
 if __name__ == "__main__":

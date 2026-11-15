@@ -9,9 +9,17 @@ job was converted.
     (discovery risks, design guardrails, translation assumptions)
 
 Reads runs/<run_id>/{discovery,design,migrate}/, legacy/ and migrated/; writes
-runs/<run_id>/dashboard.html. No server and no external data: open the file in a browser.
+runs/<run_id>/dashboard.html, a single file with no external data. It works for a run that is
+still going or was stopped: jobs with no result yet are shown as "Not run yet".
 
-    python -m factory.agents.dashboard runs/<run_id>
+    python -m factory.agents.dashboard                  # latest run: build the page and open it in the browser
+    python -m factory.agents.dashboard runs/<run_id>    # a named run
+    python -m factory.agents.dashboard --serve          # live at http://localhost:8765: every refresh
+                                                        # re-reads the latest run (watch a run in progress)
+    ... --no-open        # do not open the browser
+    ... --port=9000      # with --serve: another port
+
+The migrate agent builds and opens the same page when a run finishes (factory.agents.migrate).
 """
 from __future__ import annotations
 
@@ -19,8 +27,11 @@ import html
 import json
 import re
 import sys
+import webbrowser
 from datetime import datetime
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Optional
 
 from factory.config import ROOT
 
@@ -106,13 +117,105 @@ def render(data: dict) -> str:
     return TEMPLATE.replace("__DATA__", payload).replace("__RUN__", html.escape(data["run"]))
 
 
+def latest_run(runs: Path = ROOT / "runs") -> Optional[Path]:
+    """The run whose migrate results changed most recently (None when no run has any)."""
+    best, when = None, 0.0
+    for d in (runs.iterdir() if runs.is_dir() else []):
+        if not (d / "discovery").is_dir():
+            continue
+        t = max((f.stat().st_mtime for f in (d / "migrate").glob("J*.json")), default=0.0)
+        if t > when:
+            best, when = d, t
+    return best
+
+
+def build(run_dir: Path) -> Path:
+    """Write runs/<run_id>/dashboard.html and return its path."""
+    out = run_dir / "dashboard.html"
+    out.write_text(render(collect(run_dir)))
+    return out
+
+
+def show(page: Path) -> bool:
+    """Open the page in the default browser. False when there is none (a server, a CI job)."""
+    try:
+        return bool(webbrowser.open(page.resolve().as_uri()))
+    except Exception:
+        return False
+
+
+# The page is written without <html>/<head> so it can also be embedded; a browser needs these.
+HEAD = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">')
+
+
+def make_server(run_dir: Optional[Path] = None, port: int = 8765) -> ThreadingHTTPServer:
+    """Live dashboard on this machine only. Each page load re-reads the run (the latest one when
+    none is named), so refreshing the browser follows a migration while it runs."""
+    class Page(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            if self.path.split("?")[0] != "/":
+                return self.send_error(404)
+            run = run_dir or latest_run()
+            try:
+                if run is None:
+                    raise FileNotFoundError("no run with migrate results under runs/ yet")
+                code, body = 200, HEAD + render(collect(run))
+            except Exception as e:                    # e.g. a job file read while it is being written
+                code = 503
+                body = (HEAD + "<title>Migration Factory Review</title><p style='font:16px system-ui;padding:24px'>"
+                        f"The dashboard could not be built: {html.escape(type(e).__name__ + ': ' + str(e))}. "
+                        "Refresh the page to try again.</p>")
+            data = body.encode()
+            self.send_response(code)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
+
+        def log_message(self, *args) -> None:        # keep the terminal quiet
+            pass
+
+    return ThreadingHTTPServer(("127.0.0.1", port), Page)
+
+
+def serve(run_dir: Optional[Path] = None, port: int = 8765, open_browser: bool = True) -> None:
+    try:
+        server = make_server(run_dir, port)
+    except OSError as e:
+        sys.exit(f"port {port} is in use ({e.strerror}); pass --port=<another>")
+    url = f"http://localhost:{port}/"
+    shown = run_dir or latest_run()
+    print(f"dashboard: {url}  ({'run ' + shown.name if shown else 'no run yet'}"
+          f"{'' if run_dir else ', follows the latest run'})  -  Ctrl+C to stop", flush=True)
+    if open_browser:
+        webbrowser.open(url)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print()
+    finally:
+        server.server_close()
+
+
 def main() -> None:
     from factory.config import load_env
     load_env()
-    run_dir = ROOT / sys.argv[1]
-    out = run_dir / "dashboard.html"
-    out.write_text(render(collect(run_dir)))
-    print(f"dashboard: {out.relative_to(ROOT)}")
+    flags = {a for a in sys.argv[1:] if a.startswith("--")}
+    named = [a for a in sys.argv[1:] if not a.startswith("--")]
+    run_dir = ROOT / named[0] if named else None
+    if run_dir is not None and not (run_dir / "discovery").is_dir():
+        sys.exit(f"{named[0]} is not a run folder (no discovery/ inside)")
+    if "--serve" in flags:
+        port = int(next((f.split("=", 1)[1] for f in flags if f.startswith("--port=")), 8765))
+        return serve(run_dir, port, open_browser="--no-open" not in flags)
+    run_dir = run_dir or latest_run()
+    if run_dir is None:
+        sys.exit("no run with migrate results found under runs/")
+    out = build(run_dir)
+    opened = "--no-open" not in flags and show(out)
+    print(f"dashboard: {out.relative_to(ROOT)}" + ("  (opened in the browser)" if opened else ""))
 
 
 TEMPLATE = r"""<title>Migration Factory Review</title>
@@ -141,7 +244,7 @@ TEMPLATE = r"""<title>Migration Factory Review</title>
   --ok: #5cc98d; --ok-bg: #173527; --fix: #6fb0dc; --fix-bg: #162c3c;
   --warn: #e7aa4c; --warn-bg: #3a2a10; --stop: #95a3ad; --stop-bg: #232d35; --bad: #ec7b6e; color-scheme: dark }
 * { box-sizing: border-box }
-body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--body);
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--body);
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px }
 .wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 28px }
 h1, h2 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: .01em }
@@ -317,7 +420,7 @@ footer { color: var(--muted); font-size: 12px }
   jobs.forEach(j => {
     const d = el("details", { class: "job", id: j.id });
     d.append(el("summary", {}, el("span", { class: "id", text: j.id }), pill(j.status),
-      el("span", { class: "lang", text: j.language + " → " + j.targets.join(", ") }),
+      el("span", { class: "lang", text: j.language + " \u2192 " + j.targets.join(", ") }),
       j.llm ? el("span", { class: "lang", text: "written by " + j.llm.split("/").pop() }) : null,
       el("span", { class: "arrow", text: "Show" })));
     const body = el("div", { class: "dossier" });
