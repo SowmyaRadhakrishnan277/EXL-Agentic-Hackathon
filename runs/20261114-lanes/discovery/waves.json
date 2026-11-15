@@ -1,0 +1,20 @@
+{
+  "1": [
+    "J01_stg_customers",
+    "J02_stg_policies",
+    "J03_stg_premiums",
+    "J04_stg_claim_payments",
+    "J05_stg_claims"
+  ],
+  "2": [
+    "J06_stg_policy_earned_premium",
+    "J07_stg_claim_totals",
+    "J08_rpt_monthly_claims_paid",
+    "J09_rpt_premium_collections",
+    "J11_rpt_broker_commission",
+    "J12_rpt_open_reserves"
+  ],
+  "3": [
+    "J10_rpt_loss_ratio"
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "job_id": "J06_stg_policy_earned_premium",
+  "input_tables": [
+    "stg.policies"
+  ],
+  "output_tables": [
+    "stg.policy_earned_premium"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "stg.policy_earned_premium",
+      "target_column": "policy_id",
+      "source_columns": [
+        "stg.policies.policy_id"
+      ],
+      "transformation": "p.policy_id"
+    },
+    {
+      "target_table": "stg.policy_earned_premium",
+      "target_column": "product_code",
+      "source_columns": [
+        "stg.policies.product_code"
+      ],
+      "transformation": "p.product_code"
+    },
+    {
+      "target_table": "stg.policy_earned_premium",
+      "target_column": "policy_year",
+      "source_columns": [],
+      "transformation": "y.yr"
+    },
+    {
+      "target_table": "stg.policy_earned_premium",
+      "target_column": "days_in_force",
+      "source_columns": [
+        "stg.policies.end_date",
+        "stg.policies.start_date"
+      ],
+      "transformation": "d.days_in_force"
+    },
+    {
+      "target_table": "stg.policy_earned_premium",
+      "target_column": "earned_premium",
+      "source_columns": [
+        "stg.policies.annual_premium",
+        "stg.policies.end_date",
+        "stg.policies.start_date"
+      ],
+      "transformation": "ROUND(p.annual_premium * d.days_in_force / 365.0, 2)"
+    }
+  ],
+  "depends_on": [
+    "J02_stg_policies"
+  ],
+  "wave": 2,
+  "summary": "Calculates days in force and pro-rated earned premium per policy for calendar years 2021 through 2025 based on policy active date overlaps.",
+  "risk_notes": [
+    "DATEDIFF and inclusive bounds: T-SQL DATEDIFF(DAY, ...) combined with '+ 1' calculates inclusive days in range; PySpark datediff(end, start) counts boundaries and requires precise +1 handling to avoid off-by-one errors.",
+    "Hardcoded 365 divisor: The formula uses a fixed 365.0 denominator, ignoring leap years like 2024 (which has 366 days); PySpark implementations must preserve this explicit rule rather than using actual year day-counts.",
+    "Hardcoded year range: The inline VALUES (2021)..(2025) table limits the output scope and will omit earned premium for policies active in 2026+ unless dynamically generated in Spark.",
+    "Rounding semantics: SQL Server ROUND() behaves as half-away-from-zero for numeric types, whereas PySpark round() defaults to HALF_UP and bround() to HALF_EVEN, potentially causing penny-rounding discrepancies.",
+    "NULL date handling: IIF with NULL start_date or end_date evaluates to NULL in T-SQL, resulting in NULL days_in_force; PySpark date functions must ensure identical null-propagation behavior without throwing runtime exceptions."
+  ],
+  "method": "sqlglot"
+}

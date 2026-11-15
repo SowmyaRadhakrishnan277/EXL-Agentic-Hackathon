@@ -54,6 +54,13 @@ class GeminiLLM(LLM):
                     delay *= 2
                     continue
                 raise RuntimeError(f"Gemini error {e.code}: {e.read().decode()[:300]}") from e
+            except (TimeoutError, urllib.error.URLError, ConnectionError) as e:
+                if attempt < 5:      # slow or dropped reply under load: retry like a 503
+                    print(f"  gemini {type(e).__name__}, retry {attempt} in {delay:.0f}s")
+                    time.sleep(delay)
+                    delay *= 2
+                    continue
+                raise RuntimeError(f"Gemini unreachable after {attempt} tries: {e}") from e
         raise RuntimeError("Gemini: retries exhausted")
 
 

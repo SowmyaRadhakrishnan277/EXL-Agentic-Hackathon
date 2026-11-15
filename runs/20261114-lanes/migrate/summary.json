@@ -1,0 +1,128 @@
+{
+  "jobs": [
+    {
+      "job_id": "J01_stg_customers",
+      "language": "tsql",
+      "wave": 1,
+      "layer": "silver",
+      "status": "repaired",
+      "attempts": 2,
+      "agent_seconds": 177.1,
+      "manual_estimate_hours": null
+    },
+    {
+      "job_id": "J02_stg_policies",
+      "language": "tsql",
+      "wave": 1,
+      "layer": "silver",
+      "status": "repaired",
+      "attempts": 4,
+      "agent_seconds": 512.4,
+      "manual_estimate_hours": null
+    },
+    {
+      "job_id": "J03_stg_premiums",
+      "language": "tsql",
+      "wave": 1,
+      "layer": "silver",
+      "status": "matched",
+      "attempts": 1,
+      "agent_seconds": 117.2,
+      "manual_estimate_hours": null
+    },
+    {
+      "job_id": "J04_stg_claim_payments",
+      "language": "sas",
+      "wave": 1,
+      "layer": "silver",
+      "status": "repaired",
+      "attempts": 2,
+      "agent_seconds": 200.9,
+      "manual_estimate_hours": null
+    },
+    {
+      "job_id": "J05_stg_claims",
+      "language": "tsql",
+      "wave": 1,
+      "layer": "silver",
+      "status": "repaired",
+      "attempts": 3,
+      "agent_seconds": 333.6,
+      "manual_estimate_hours": null
+    },
+    {
+      "job_id": "J06_stg_policy_earned_premium",
+      "language": "tsql",
+      "wave": 2,
+      "layer": "silver",
+      "status": "repaired",
+      "attempts": 4,
+      "agent_seconds": 419.1,
+      "manual_estimate_hours": null
+    },
+    {
+      "job_id": "J07_stg_claim_totals",
+      "language": "sas",
+      "wave": 2,
+      "layer": "silver",
+      "status": "repaired",
+      "attempts": 4,
+      "agent_seconds": 549.3,
+      "manual_estimate_hours": null
+    },
+    {
+      "job_id": "J08_rpt_monthly_claims_paid",
+      "language": "tsql",
+      "wave": 2,
+      "layer": "gold",
+      "status": "matched",
+      "attempts": 1,
+      "agent_seconds": 980.2,
+      "manual_estimate_hours": null
+    },
+    {
+      "job_id": "J09_rpt_premium_collections",
+      "language": "tsql",
+      "wave": 2,
+      "layer": "gold",
+      "status": "repaired",
+      "attempts": 3,
+      "agent_seconds": 479.3,
+      "manual_estimate_hours": null
+    },
+    {
+      "job_id": "J11_rpt_broker_commission",
+      "language": "tsql",
+      "wave": 2,
+      "layer": "gold",
+      "status": "repaired",
+      "attempts": 4,
+      "agent_seconds": 609.8,
+      "manual_estimate_hours": null
+    },
+    {
+      "job_id": "J12_rpt_open_reserves",
+      "language": "tsql",
+      "wave": 2,
+      "layer": "gold",
+      "status": "repaired",
+      "attempts": 4,
+      "agent_seconds": 358.6,
+      "manual_estimate_hours": null
+    },
+    {
+      "job_id": "J10_rpt_loss_ratio",
+      "language": "sas",
+      "wave": 3,
+      "layer": "gold",
+      "status": "repaired",
+      "attempts": 2,
+      "agent_seconds": 534.8,
+      "manual_estimate_hours": null
+    }
+  ],
+  "by_status": {
+    "matched": 2,
+    "repaired": 10
+  }
+}

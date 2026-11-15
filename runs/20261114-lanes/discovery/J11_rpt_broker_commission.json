@@ -1,0 +1,63 @@
+{
+  "job_id": "J11_rpt_broker_commission",
+  "input_tables": [
+    "dbo.brokers",
+    "stg.policies"
+  ],
+  "output_tables": [
+    "rpt.broker_commission"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "rpt.broker_commission",
+      "target_column": "broker_id",
+      "source_columns": [
+        "dbo.brokers.broker_id"
+      ],
+      "transformation": "b.broker_id"
+    },
+    {
+      "target_table": "rpt.broker_commission",
+      "target_column": "written_year",
+      "source_columns": [
+        "stg.policies.start_date"
+      ],
+      "transformation": "YEAR(p.start_date)"
+    },
+    {
+      "target_table": "rpt.broker_commission",
+      "target_column": "policies_written",
+      "source_columns": [],
+      "transformation": "COUNT(*)"
+    },
+    {
+      "target_table": "rpt.broker_commission",
+      "target_column": "written_premium",
+      "source_columns": [
+        "stg.policies.annual_premium"
+      ],
+      "transformation": "SUM(p.annual_premium)"
+    },
+    {
+      "target_table": "rpt.broker_commission",
+      "target_column": "commission_due",
+      "source_columns": [
+        "dbo.brokers.commission_rate",
+        "stg.policies.annual_premium"
+      ],
+      "transformation": "ROUND(SUM(p.annual_premium * b.commission_rate), 2)"
+    }
+  ],
+  "depends_on": [
+    "J02_stg_policies"
+  ],
+  "wave": 2,
+  "summary": "This job generates an annual aggregate report of policy counts, total written premiums, and calculated broker commissions for active brokers handling non-cancelled policies written between 2021 and 2025.",
+  "risk_notes": [
+    "Case sensitivity: String comparisons like `b.active_flag = 'Y'` and `p.status <> 'CANCELLED'` are case-insensitive in SQL Server by default, whereas PySpark string evaluations are case-sensitive unless explicitly handled with `lower()` or `upper()`.",
+    "Rounding mode: T-SQL `ROUND` performs round-half-away-from-zero (arithmetic rounding), whereas PySpark `round()` performs round-half-even (banker's rounding), which can cause minor financial discrepancies in `commission_due`.",
+    "NULL handling: The inequality `p.status <> 'CANCELLED'` implicitly filters out NULL `status` rows in T-SQL; ensure PySpark filter logic maintains this NULL exclusion without unexpected drop/retention behavior.",
+    "Decimal precision and overflow: Multiplying `annual_premium` by `commission_rate` inside `SUM()` can lead to implicit precision/scale truncation or type promotion differences in Spark DecimalType compared to SQL Server's numeric rules."
+  ],
+  "method": "sqlglot"
+}

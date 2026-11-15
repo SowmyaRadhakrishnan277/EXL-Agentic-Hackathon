@@ -1,0 +1,68 @@
+{
+  "job_id": "J04_stg_claim_payments",
+  "input_tables": [
+    "dbo.claim_payments"
+  ],
+  "output_tables": [
+    "legacy.stg_claim_payments"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "legacy.stg_claim_payments",
+      "target_column": "payment_id",
+      "source_columns": [
+        "dbo.claim_payments.payment_id"
+      ],
+      "transformation": "Direct assignment after deduplication by payment_id"
+    },
+    {
+      "target_table": "legacy.stg_claim_payments",
+      "target_column": "claim_id",
+      "source_columns": [
+        "dbo.claim_payments.claim_id"
+      ],
+      "transformation": "Direct assignment"
+    },
+    {
+      "target_table": "legacy.stg_claim_payments",
+      "target_column": "payment_date",
+      "source_columns": [
+        "dbo.claim_payments.payment_date"
+      ],
+      "transformation": "Direct assignment"
+    },
+    {
+      "target_table": "legacy.stg_claim_payments",
+      "target_column": "payment_type",
+      "source_columns": [
+        "dbo.claim_payments.payment_type"
+      ],
+      "transformation": "Direct assignment"
+    },
+    {
+      "target_table": "legacy.stg_claim_payments",
+      "target_column": "amount",
+      "source_columns": [
+        "dbo.claim_payments.amount"
+      ],
+      "transformation": "Direct assignment"
+    },
+    {
+      "target_table": "legacy.stg_claim_payments",
+      "target_column": "amount_band",
+      "source_columns": [
+        "dbo.claim_payments.amount"
+      ],
+      "transformation": "Categorized as SMALL (< 100), MEDIUM (< 1000), or LARGE (>= 1000) based on amount"
+    }
+  ],
+  "depends_on": [],
+  "wave": 1,
+  "summary": "This job ingests raw claim payment CSV data, deduplicates records by payment_id, categorizes payments into size bands, and writes the staged output to both a legacy dataset and a golden CSV file.",
+  "risk_notes": [
+    "SAS proc sort with nodupkey retains the first row encountered in input file order for duplicate payment_id values. PySpark dropDuplicates(['payment_id']) is non-deterministic unless explicitly ordered via window functions.",
+    "SAS treats missing numeric values (.) as negative infinity, so if amount is missing, 'if amount < 100' evaluates to true and assigns 'SMALL'. In PySpark, NULL < 100 evaluates to NULL, causing missing amounts to fall into the otherwise('LARGE') clause.",
+    "SAS date informat yymmdd10. converts unparseable dates to missing values. PySpark to_date with strict formatting may return NULL or throw an exception depending on spark.sql.ansi.enabled settings."
+  ],
+  "method": "rules+gemini"
+}

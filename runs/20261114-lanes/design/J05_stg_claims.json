@@ -1,0 +1,71 @@
+{
+  "spec": {
+    "job_id": "J05_stg_claims",
+    "layer": "silver",
+    "target_tables": [
+      "silver.claims"
+    ],
+    "contracts": [
+      {
+        "table": "silver.claims",
+        "primary_key": [
+          "claim_id"
+        ],
+        "columns": [
+          {
+            "name": "claim_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "policy_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "loss_date",
+            "dtype": "date",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "reported_date",
+            "dtype": "date",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "claim_type",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "status",
+            "dtype": "string",
+            "nullable": false,
+            "rule": "!= 'REJECTED'"
+          },
+          {
+            "name": "reserve_amount",
+            "dtype": "decimal(18,2)",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "claim_age_days",
+            "dtype": "int",
+            "nullable": false,
+            "rule": ">= 0"
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    "guardrail: silver.claims.loss_date kept nullable: legacy output has 54 NULL values",
+    "guardrail: silver.claims.reserve_amount kept nullable: legacy output has 61 NULL values"
+  ]
+}

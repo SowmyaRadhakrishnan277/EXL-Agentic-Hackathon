@@ -1,0 +1,51 @@
+{
+  "spec": {
+    "job_id": "J06_stg_policy_earned_premium",
+    "layer": "silver",
+    "target_tables": [
+      "silver.policy_earned_premium"
+    ],
+    "contracts": [
+      {
+        "table": "silver.policy_earned_premium",
+        "primary_key": [
+          "policy_id",
+          "policy_year"
+        ],
+        "columns": [
+          {
+            "name": "policy_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "product_code",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "policy_year",
+            "dtype": "int",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "days_in_force",
+            "dtype": "int",
+            "nullable": false,
+            "rule": ">= 0"
+          },
+          {
+            "name": "earned_premium",
+            "dtype": "decimal(38,2)",
+            "nullable": false,
+            "rule": null
+          }
+        ]
+      }
+    ]
+  },
+  "notes": []
+}

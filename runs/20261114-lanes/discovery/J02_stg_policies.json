@@ -1,0 +1,117 @@
+{
+  "job_id": "J02_stg_policies",
+  "input_tables": [
+    "dbo.policies",
+    "dbo.products"
+  ],
+  "output_tables": [
+    "stg.policies"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "stg.policies",
+      "target_column": "policy_id",
+      "source_columns": [
+        "dbo.policies.policy_id"
+      ],
+      "transformation": "p.policy_id"
+    },
+    {
+      "target_table": "stg.policies",
+      "target_column": "customer_id",
+      "source_columns": [
+        "dbo.policies.customer_id"
+      ],
+      "transformation": "p.customer_id"
+    },
+    {
+      "target_table": "stg.policies",
+      "target_column": "product_code",
+      "source_columns": [
+        "dbo.policies.product_code"
+      ],
+      "transformation": "p.product_code"
+    },
+    {
+      "target_table": "stg.policies",
+      "target_column": "line_of_business",
+      "source_columns": [
+        "dbo.products.line_of_business"
+      ],
+      "transformation": "pr.line_of_business"
+    },
+    {
+      "target_table": "stg.policies",
+      "target_column": "broker_id",
+      "source_columns": [
+        "dbo.policies.broker_id"
+      ],
+      "transformation": "p.broker_id"
+    },
+    {
+      "target_table": "stg.policies",
+      "target_column": "channel",
+      "source_columns": [
+        "dbo.policies.channel"
+      ],
+      "transformation": "p.channel"
+    },
+    {
+      "target_table": "stg.policies",
+      "target_column": "start_date",
+      "source_columns": [
+        "dbo.policies.start_date"
+      ],
+      "transformation": "p.start_date"
+    },
+    {
+      "target_table": "stg.policies",
+      "target_column": "end_date",
+      "source_columns": [
+        "dbo.policies.end_date"
+      ],
+      "transformation": "COALESCE(p.end_date, CAST('9999-12-31' AS DATE))"
+    },
+    {
+      "target_table": "stg.policies",
+      "target_column": "rolling_flag",
+      "source_columns": [
+        "dbo.policies.end_date"
+      ],
+      "transformation": "CASE WHEN p.end_date IS NULL THEN 'Y' ELSE 'N' END"
+    },
+    {
+      "target_table": "stg.policies",
+      "target_column": "status",
+      "source_columns": [
+        "dbo.policies.status"
+      ],
+      "transformation": "UPPER(LTRIM(RTRIM(p.status)))"
+    },
+    {
+      "target_table": "stg.policies",
+      "target_column": "annual_premium",
+      "source_columns": [
+        "dbo.policies.annual_premium"
+      ],
+      "transformation": "p.annual_premium"
+    },
+    {
+      "target_table": "stg.policies",
+      "target_column": "payment_frequency",
+      "source_columns": [
+        "dbo.policies.payment_frequency"
+      ],
+      "transformation": "p.payment_frequency"
+    }
+  ],
+  "depends_on": [],
+  "wave": 1,
+  "summary": "This job stages policy records enriched with product line-of-business metadata into stg.policies, standardizing text formatting and defaulting open-ended policy expiration dates.",
+  "risk_notes": [
+    "The JOIN on 'product_code' relies on SQL Server's default case-insensitive collation; PySpark joins are case-sensitive by default and will fail to match casing variations.",
+    "Uniqueness is assumed on 'dbo.products.product_code'; if non-unique, the INNER JOIN will explode the row count in PySpark compared to a expected 1:1 match.",
+    "Recreating the table via 'DROP TABLE' and 'SELECT INTO' should be translated to Delta Lake 'CREATE OR REPLACE TABLE' or 'write.mode(\"overwrite\")' to avoid schema and transaction log issues."
+  ],
+  "method": "sqlglot"
+}

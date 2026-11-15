@@ -1,0 +1,60 @@
+{
+  "spec": {
+    "job_id": "J10_rpt_loss_ratio",
+    "layer": "gold",
+    "target_tables": [
+      "gold.loss_ratio"
+    ],
+    "contracts": [
+      {
+        "table": "gold.loss_ratio",
+        "primary_key": [
+          "product_code",
+          "year"
+        ],
+        "columns": [
+          {
+            "name": "product_code",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "year",
+            "dtype": "string",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "earned_premium",
+            "dtype": "decimal(38,2)",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "incurred",
+            "dtype": "decimal(38,3)",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "claim_count",
+            "dtype": "bigint",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "loss_ratio",
+            "dtype": "decimal(38,6)",
+            "nullable": true,
+            "rule": null
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    "guardrail: gold.loss_ratio.year kept nullable: legacy output has 7 NULL values",
+    "guardrail: gold.loss_ratio.earned_premium kept nullable: legacy output has 7 NULL values"
+  ]
+}

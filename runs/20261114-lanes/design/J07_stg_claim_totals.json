@@ -1,0 +1,81 @@
+{
+  "spec": {
+    "job_id": "J07_stg_claim_totals",
+    "layer": "silver",
+    "target_tables": [
+      "silver.claim_totals"
+    ],
+    "contracts": [
+      {
+        "table": "silver.claim_totals",
+        "primary_key": [
+          "claim_id"
+        ],
+        "columns": [
+          {
+            "name": "claim_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "policy_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "claim_type",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "loss_date",
+            "dtype": "date",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "indemnity_paid",
+            "dtype": "decimal(38,3)",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "expense_paid",
+            "dtype": "decimal(38,3)",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "payment_count",
+            "dtype": "bigint",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "small_claim_flag",
+            "dtype": "string",
+            "nullable": false,
+            "rule": "in ('Y', 'N')"
+          },
+          {
+            "name": "total_paid",
+            "dtype": "decimal(18,2)",
+            "nullable": true,
+            "rule": null
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    "guardrail: silver.claim_totals.loss_date kept nullable: legacy output has 54 NULL values",
+    "guardrail: silver.claim_totals.indemnity_paid kept nullable: legacy output has 426 NULL values",
+    "guardrail: silver.claim_totals.indemnity_paid widened decimal(18,2) -> decimal(38,3): legacy output has 3 decimal places",
+    "guardrail: silver.claim_totals.expense_paid kept nullable: legacy output has 4712 NULL values",
+    "guardrail: silver.claim_totals.expense_paid widened decimal(18,2) -> decimal(38,3): legacy output has 3 decimal places",
+    "guardrail: silver.claim_totals.total_paid kept nullable: legacy output has 5117 NULL values"
+  ]
+}

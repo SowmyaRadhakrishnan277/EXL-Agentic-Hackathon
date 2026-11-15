@@ -1,0 +1,59 @@
+{
+  "spec": {
+    "job_id": "J01_stg_customers",
+    "layer": "silver",
+    "target_tables": [
+      "silver.customers"
+    ],
+    "contracts": [
+      {
+        "table": "silver.customers",
+        "primary_key": [
+          "customer_id"
+        ],
+        "columns": [
+          {
+            "name": "customer_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "county",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "date_of_birth",
+            "dtype": "date",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "age_years",
+            "dtype": "int",
+            "nullable": true,
+            "rule": ">= 0"
+          },
+          {
+            "name": "customer_since",
+            "dtype": "date",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "segment",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    "guardrail: silver.customers.date_of_birth kept nullable: legacy output has 353 NULL values",
+    "guardrail: silver.customers.age_years kept nullable: legacy output has 353 NULL values"
+  ]
+}

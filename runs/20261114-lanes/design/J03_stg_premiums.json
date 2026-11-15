@@ -1,0 +1,58 @@
+{
+  "spec": {
+    "job_id": "J03_stg_premiums",
+    "layer": "silver",
+    "target_tables": [
+      "silver.premiums"
+    ],
+    "contracts": [
+      {
+        "table": "silver.premiums",
+        "primary_key": [
+          "premium_id"
+        ],
+        "columns": [
+          {
+            "name": "premium_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "policy_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "due_date",
+            "dtype": "date",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "paid_date",
+            "dtype": "date",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "amount",
+            "dtype": "decimal(18,3)",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "paid_flag",
+            "dtype": "string",
+            "nullable": false,
+            "rule": "in ('N', 'Y')"
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    "guardrail: silver.premiums.amount kept nullable: legacy output has 4235 NULL values"
+  ]
+}

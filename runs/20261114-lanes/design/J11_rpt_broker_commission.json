@@ -1,0 +1,51 @@
+{
+  "spec": {
+    "job_id": "J11_rpt_broker_commission",
+    "layer": "gold",
+    "target_tables": [
+      "gold.broker_commission"
+    ],
+    "contracts": [
+      {
+        "table": "gold.broker_commission",
+        "primary_key": [
+          "broker_id",
+          "written_year"
+        ],
+        "columns": [
+          {
+            "name": "broker_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "written_year",
+            "dtype": "int",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "policies_written",
+            "dtype": "bigint",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "written_premium",
+            "dtype": "decimal(38,2)",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "commission_due",
+            "dtype": "decimal(38,2)",
+            "nullable": false,
+            "rule": null
+          }
+        ]
+      }
+    ]
+  },
+  "notes": []
+}

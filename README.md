@@ -57,7 +57,11 @@ python -m factory.agents.design runs/<run_id>    # Stage 2 -> runs/<run_id>/desi
 python -m factory.mapping_doc runs/<run_id>      # -> docs/source_to_target_mapping.md + .xlsx
 python -m factory.bronze                         # raw CSVs -> bronze layer (needs pyspark + Java)
 python -m factory.agents.migrate runs/<run_id>   # Stages 3-4: LLM writes, runs, checks and fixes
-                                                 # each job; passing output -> silver / gold
+                                                 # each job; passing output -> silver / gold,
+                                                 # then opens the review dashboard in the browser
+python -m factory.agents.dashboard               # review dashboard of the latest run (opens the browser)
+python -m factory.agents.dashboard --serve       # the same page live at http://localhost:8765:
+                                                 # refresh it to follow a migration while it runs
 pytest -q
 ```
 

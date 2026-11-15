@@ -1,0 +1,269 @@
+{
+  "record": {
+    "job_id": "J07_stg_claim_totals",
+    "language": "sas",
+    "wave": 2,
+    "layer": "silver",
+    "status": "repaired",
+    "attempts": 4,
+    "agent_seconds": 549.3,
+    "manual_estimate_hours": null
+  },
+  "llm": "openrouter/particle-ai/particle-1:free",
+  "escalated_from": "ollama/qwen2.5-coder:14b",
+  "reports": [
+    {
+      "job_id": "J07_stg_claim_totals",
+      "attempt": 1,
+      "passed": false,
+      "tables": [
+        {
+          "table": "silver.claim_totals",
+          "legacy_rows": 6415,
+          "migrated_rows": 6415,
+          "column_total_diffs": {},
+          "mismatched_keys": 5117,
+          "sample_mismatches": [
+            {
+              "claim_id": "CL00000001",
+              "small_claim_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "claim_id": "CL00000004",
+              "small_claim_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "claim_id": "CL00000008",
+              "small_claim_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "claim_id": "CL00000106",
+              "small_claim_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "claim_id": "CL00000125",
+              "small_claim_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "claim_id": "CL00000129",
+              "small_claim_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "claim_id": "CL00000144",
+              "small_claim_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "claim_id": "CL00000174",
+              "small_claim_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            }
+          ],
+          "input_rows": [
+            {
+              "input_table": "legacy.stg_claim_payments",
+              "payment_id": "CP000000001",
+              "claim_id": "CL00000001",
+              "payment_date": "2023-03-22",
+              "payment_type": "INDEMNITY",
+              "amount": "4701.080",
+              "amount_band": "LARGE"
+            },
+            {
+              "input_table": "legacy.stg_claim_payments",
+              "payment_id": "CP000000002",
+              "claim_id": "CL00000001",
+              "payment_date": "2023-03-25",
+              "payment_type": "INDEMNITY",
+              "amount": "3252.130",
+              "amount_band": "LARGE"
+            },
+            {
+              "input_table": "legacy.stg_claim_payments",
+              "payment_id": "CP000000008",
+              "claim_id": "CL00000004",
+              "payment_date": "2024-11-30",
+              "payment_type": "INDEMNITY",
+              "amount": "692.080",
+              "amount_band": "MEDIUM"
+            },
+            {
+              "input_table": "legacy.stg_claim_payments",
+              "payment_id": "CP000000009",
+              "claim_id": "CL00000004",
+              "payment_date": "2024-12-25",
+              "payment_type": "INDEMNITY",
+              "amount": "702.740",
+              "amount_band": "MEDIUM"
+            },
+            {
+              "input_table": "legacy.stg_claim_payments",
+              "payment_id": "CP000000016",
+              "claim_id": "CL00000008",
+              "payment_date": "2024-03-23",
+              "payment_type": "INDEMNITY",
+              "amount": "178.860",
+              "amount_band": "MEDIUM"
+            },
+            {
+              "input_table": "legacy.stg_claim_payments",
+              "payment_id": "CP000000017",
+              "claim_id": "CL00000008",
+              "payment_date": "2024-02-03",
+              "payment_type": "INDEMNITY",
+              "amount": "170.110",
+              "amount_band": "MEDIUM"
+            },
+            {
+              "input_table": "legacy.stg_claim_payments",
+              "payment_id": "CP000000018",
+              "claim_id": "CL00000008",
+              "payment_date": "2024-03-24",
+              "payment_type": "INDEMNITY",
+              "amount": "1253.060",
+              "amount_band": "LARGE"
+            },
+            {
+              "input_table": "stg.claims",
+              "claim_id": "CL00000001",
+              "policy_id": "P00000005",
+              "loss_date": "2022-09-16",
+              "reported_date": "2022-09-19",
+              "claim_type": "THEFT",
+              "status": "CLOSED",
+              "reserve_amount": "0.00",
+              "claim_age_days": 1199
+            },
+            {
+              "input_table": "stg.claims",
+              "claim_id": "CL00000004",
+              "policy_id": "P00000010",
+              "loss_date": "2024-11-06",
+              "reported_date": "2024-11-10",
+              "claim_type": "GLASS",
+              "status": "CLOSED",
+              "reserve_amount": "0.00",
+              "claim_age_days": 416
+            },
+            {
+              "input_table": "stg.claims",
+              "claim_id": "CL00000008",
+              "policy_id": "P00000044",
+              "loss_date": "2023-09-18",
+              "reported_date": "2023-10-04",
+              "claim_type": "MEDICAL",
+              "status": "CLOSED",
+              "reserve_amount": "0.00",
+              "claim_age_days": 819
+            }
+          ],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 70.33,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    },
+    {
+      "job_id": "J07_stg_claim_totals",
+      "attempt": 2,
+      "passed": false,
+      "tables": [
+        {
+          "table": "silver.claim_totals",
+          "legacy_rows": 0,
+          "migrated_rows": 0,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "no usable code: J07_stg_claim_totals: no valid translation after 3 tries (job_py is the same code as an earlier attempt that already failed. Change the logic that causes the reported differences)"
+          ]
+        }
+      ],
+      "runtime_seconds": 243.46,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J07_stg_claim_totals",
+      "attempt": 3,
+      "passed": false,
+      "tables": [
+        {
+          "table": "silver.claim_totals",
+          "legacy_rows": 0,
+          "migrated_rows": 0,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "no usable code: J07_stg_claim_totals: no valid translation after 3 tries (job_py is the same code as an earlier attempt that already failed. Change the logic that causes the reported differences)"
+          ]
+        }
+      ],
+      "runtime_seconds": 201.86,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J07_stg_claim_totals",
+      "attempt": 4,
+      "passed": true,
+      "tables": [
+        {
+          "table": "silver.claim_totals",
+          "legacy_rows": 6415,
+          "migrated_rows": 6415,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 28.71,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    }
+  ],
+  "notes": [
+    "attempt 1: Reproduced case-insensitive and space-ignoring string comparison.",
+    "attempt 1: Handled NULL arithmetic propagation as in SAS.",
+    "attempt 1: Preserved NULL behavior in aggregate sums.",
+    "attempt 1: Used PySpark round() for half-up rounding.",
+    "attempt 1: Coalesced payment_count after the LEFT JOIN to match legacy behavior.",
+    "escalated to openrouter/particle-ai/particle-1:free after 3 attempts on ollama/qwen2.5-coder:14b",
+    "attempt 4: diagnosis: In SAS `indemnity_paid + expense_paid` is missing when either operand is missing, so for claims like CL00000001 (INDEMNITY 4701.08 + 3252.13, but no EXPENSE rows -> expense_paid NULL) total_paid is NULL; SAS then evaluates `if total_paid < 500` as TRUE for a missing value, giving 'Y', whereas the previous PySpark code let NULL < 500 fall through to otherwise('N').",
+    "attempt 4: change: Set small_claim_flag to 'Y' when total_paid IS NULL as well as when total_paid < 500, keeping total_paid itself un-coalesced (NULL) and rounding it on the decimal column.",
+    "attempt 4: SAS missing numeric is lower than every number: NULL total_paid -> small_claim_flag 'Y'",
+    "attempt 4: SAS a + b propagates missing, so total_paid stays NULL when either paid component is NULL (no coalesce before addition)",
+    "attempt 4: SUM(CASE WHEN ... THEN amount END) yields NULL for claims with no matching payment type",
+    "attempt 4: coalesce(payment_count, 0) applied after the LEFT JOIN so unmatched claims get 0",
+    "attempt 4: round() applied to the decimal sum (half away from zero), result cast to decimal(18,2)"
+  ]
+}

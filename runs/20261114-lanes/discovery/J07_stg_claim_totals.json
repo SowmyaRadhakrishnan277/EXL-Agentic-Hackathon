@@ -1,0 +1,100 @@
+{
+  "job_id": "J07_stg_claim_totals",
+  "input_tables": [
+    "legacy.stg_claim_payments",
+    "stg.claims"
+  ],
+  "output_tables": [
+    "legacy.claim_totals"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "legacy.claim_totals",
+      "target_column": "claim_id",
+      "source_columns": [
+        "stg.claims.claim_id"
+      ],
+      "transformation": "Direct copy"
+    },
+    {
+      "target_table": "legacy.claim_totals",
+      "target_column": "policy_id",
+      "source_columns": [
+        "stg.claims.policy_id"
+      ],
+      "transformation": "Direct copy"
+    },
+    {
+      "target_table": "legacy.claim_totals",
+      "target_column": "claim_type",
+      "source_columns": [
+        "stg.claims.claim_type"
+      ],
+      "transformation": "Direct copy"
+    },
+    {
+      "target_table": "legacy.claim_totals",
+      "target_column": "loss_date",
+      "source_columns": [
+        "stg.claims.loss_date"
+      ],
+      "transformation": "Direct copy"
+    },
+    {
+      "target_table": "legacy.claim_totals",
+      "target_column": "indemnity_paid",
+      "source_columns": [
+        "legacy.stg_claim_payments.amount",
+        "legacy.stg_claim_payments.payment_type"
+      ],
+      "transformation": "Sum of amount where payment_type = INDEMNITY"
+    },
+    {
+      "target_table": "legacy.claim_totals",
+      "target_column": "expense_paid",
+      "source_columns": [
+        "legacy.stg_claim_payments.amount",
+        "legacy.stg_claim_payments.payment_type"
+      ],
+      "transformation": "Sum of amount where payment_type = EXPENSE"
+    },
+    {
+      "target_table": "legacy.claim_totals",
+      "target_column": "payment_count",
+      "source_columns": [],
+      "transformation": "Count of payment records per claim, defaulted to 0 if null"
+    },
+    {
+      "target_table": "legacy.claim_totals",
+      "target_column": "small_claim_flag",
+      "source_columns": [
+        "legacy.stg_claim_payments.amount",
+        "legacy.stg_claim_payments.payment_type"
+      ],
+      "transformation": "Y if total_paid < 500 else N"
+    },
+    {
+      "target_table": "legacy.claim_totals",
+      "target_column": "total_paid",
+      "source_columns": [
+        "legacy.stg_claim_payments.amount",
+        "legacy.stg_claim_payments.payment_type"
+      ],
+      "transformation": "Round sum of indemnity_paid and expense_paid to 2 decimal places"
+    }
+  ],
+  "depends_on": [
+    "J04_stg_claim_payments",
+    "J05_stg_claims"
+  ],
+  "wave": 2,
+  "summary": "This job aggregates indemnity and expense payments by claim, joins them with claim master data from a CSV, calculates total paid amounts, and assigns a small claim flag before outputting to a legacy table and CSV export.",
+  "risk_notes": [
+    "SAS missing value comparison: In SAS, a missing value (.) is smaller than any number, so if total_paid is missing (NULL), 'total_paid < 500' evaluates to TRUE ('Y'). In PySpark, NULL comparisons return NULL, which would default to 'N' in a simple when/otherwise block.",
+    "NULL arithmetic propagation: In SAS, 'indemnity_paid + expense_paid' returns missing (.) if either operand is missing. In PySpark, addition with NULL produces NULL, but explicit coalescing to 0 before addition may be accidentally introduced during PySpark translation, altering legacy behavior.",
+    "SQL aggregate sum on empty filtered sets: 'sum(case when payment_type = ... then amount end)' returns NULL when no matching rows exist for a payment type, which impacts downstream arithmetic.",
+    "Rounding semantics: SAS 'round(x, 0.01)' uses standard half-up rounding, whereas PySpark 'bround' (half-even) vs 'round' (half-up) must be explicitly selected to ensure identical floating-point precision behavior.",
+    "Left join count coalescing: 'coalesce(p.payment_count, 0)' correctly handles un-matched claims, but missing count behavior from the aggregated table itself must preserve exact nullability before the join."
+  ],
+  "method": "rules+gemini"
+}

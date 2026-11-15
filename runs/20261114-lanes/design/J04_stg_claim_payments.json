@@ -1,0 +1,56 @@
+{
+  "spec": {
+    "job_id": "J04_stg_claim_payments",
+    "layer": "silver",
+    "target_tables": [
+      "silver.claim_payments"
+    ],
+    "contracts": [
+      {
+        "table": "silver.claim_payments",
+        "primary_key": [
+          "payment_id"
+        ],
+        "columns": [
+          {
+            "name": "payment_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "claim_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "payment_date",
+            "dtype": "date",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "payment_type",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "amount",
+            "dtype": "decimal(18,3)",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "amount_band",
+            "dtype": "string",
+            "nullable": false,
+            "rule": "in ('SMALL', 'MEDIUM', 'LARGE')"
+          }
+        ]
+      }
+    ]
+  },
+  "notes": []
+}

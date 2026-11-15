@@ -1,0 +1,68 @@
+{
+  "job_id": "J01_stg_customers",
+  "input_tables": [
+    "dbo.customers"
+  ],
+  "output_tables": [
+    "stg.customers"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "stg.customers",
+      "target_column": "customer_id",
+      "source_columns": [
+        "dbo.customers.customer_id"
+      ],
+      "transformation": "c.customer_id"
+    },
+    {
+      "target_table": "stg.customers",
+      "target_column": "county",
+      "source_columns": [
+        "dbo.customers.county"
+      ],
+      "transformation": "UPPER(LTRIM(RTRIM(c.county)))"
+    },
+    {
+      "target_table": "stg.customers",
+      "target_column": "date_of_birth",
+      "source_columns": [
+        "dbo.customers.date_of_birth"
+      ],
+      "transformation": "c.date_of_birth"
+    },
+    {
+      "target_table": "stg.customers",
+      "target_column": "age_years",
+      "source_columns": [
+        "dbo.customers.date_of_birth"
+      ],
+      "transformation": "DATEDIFF(YEAR, CAST(c.date_of_birth AS DATETIME2), CAST(CAST('2025-06-30' AS DATE) AS DATETIME2))"
+    },
+    {
+      "target_table": "stg.customers",
+      "target_column": "customer_since",
+      "source_columns": [
+        "dbo.customers.customer_since"
+      ],
+      "transformation": "c.customer_since"
+    },
+    {
+      "target_table": "stg.customers",
+      "target_column": "segment",
+      "source_columns": [
+        "dbo.customers.segment"
+      ],
+      "transformation": "c.segment"
+    }
+  ],
+  "depends_on": [],
+  "wave": 1,
+  "summary": "This job populates the `stg.customers` table from `dbo.customers`, stripping out PII names, standardizing county text, and calculating age as of a fixed actuarial reporting date ('2025-06-30') for downstream reporting.",
+  "risk_notes": [
+    "T-SQL `DATEDIFF(YEAR, c.date_of_birth, @asof)` counts calendar year boundaries crossed rather than actual elapsed years (e.g., 2024-12-31 to 2025-01-01 equals 1 year); a standard PySpark `datediff` divided by 365 or `months_between` will produce different results unless explicitly handled as `year(asof) - year(date_of_birth)`.",
+    "Hardcoded T-SQL variable `@asof = '2025-06-30'` will cause static/stale calculations in PySpark unless converted into a dynamic pipeline parameter or job configuration.",
+    "T-SQL `SELECT INTO` implicitly creates table schemas dynamically; migrating to PySpark requires explicit Delta Lake schema definitions to avoid unexpected type coercion or schema drift on `mode('overwrite')`."
+  ],
+  "method": "sqlglot"
+}

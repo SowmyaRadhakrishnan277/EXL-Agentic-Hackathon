@@ -1,0 +1,46 @@
+{
+  "record": {
+    "job_id": "J08_rpt_monthly_claims_paid",
+    "language": "tsql",
+    "wave": 2,
+    "layer": "gold",
+    "status": "matched",
+    "attempts": 1,
+    "agent_seconds": 980.2,
+    "manual_estimate_hours": null
+  },
+  "llm": "ollama/qwen2.5-coder:14b",
+  "escalated_from": null,
+  "reports": [
+    {
+      "job_id": "J08_rpt_monthly_claims_paid",
+      "attempt": 1,
+      "passed": true,
+      "tables": [
+        {
+          "table": "gold.monthly_claims_paid",
+          "legacy_rows": 425,
+          "migrated_rows": 425,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 178.98,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    }
+  ],
+  "notes": [
+    "attempt 1: validation failure on try 1: job_py has a syntax error: unexpected character after line continuation character (line 10)",
+    "attempt 1: validation failure on try 2: job_py has a syntax error: unexpected character after line continuation character (line 10)",
+    "attempt 1: Reproduced case-insensitive string comparison by using upper() and trim() on both sides of the comparison.",
+    "attempt 1: Handled NULLs in comparisons by ensuring that NULLs in amount are treated as 'SMALL' in the amount_band categorization.",
+    "attempt 1: Used trunc() to handle date truncation to the first day of the month.",
+    "attempt 1: Ensured that the rounding behavior matches T-SQL by using round() on DecimalType columns.",
+    "attempt 1: Reproduced the deduplication scope by using dropDuplicates() on the specific columns.",
+    "unit tests: not written - test_py has a syntax error: unmatched ')' (line 124)"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "spec": {
+    "job_id": "J09_rpt_premium_collections",
+    "layer": "gold",
+    "target_tables": [
+      "gold.premium_collections"
+    ],
+    "contracts": [
+      {
+        "table": "gold.premium_collections",
+        "primary_key": [
+          "due_month"
+        ],
+        "columns": [
+          {
+            "name": "due_month",
+            "dtype": "date",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "instalments_due",
+            "dtype": "bigint",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "amount_due",
+            "dtype": "decimal(38,3)",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "amount_collected",
+            "dtype": "decimal(38,3)",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "arrears",
+            "dtype": "decimal(38,3)",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "collection_rate_pct",
+            "dtype": "decimal(9,2)",
+            "nullable": true,
+            "rule": null
+          }
+        ]
+      }
+    ]
+  },
+  "notes": []
+}
