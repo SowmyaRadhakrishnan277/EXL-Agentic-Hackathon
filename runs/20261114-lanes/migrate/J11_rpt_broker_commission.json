@@ -1,0 +1,117 @@
+{
+  "record": {
+    "job_id": "J11_rpt_broker_commission",
+    "language": "tsql",
+    "wave": 2,
+    "layer": "gold",
+    "status": "repaired",
+    "attempts": 4,
+    "agent_seconds": 609.8,
+    "manual_estimate_hours": null
+  },
+  "llm": "openrouter/particle-ai/particle-1:free",
+  "escalated_from": "ollama/qwen2.5-coder:14b",
+  "reports": [
+    {
+      "job_id": "J11_rpt_broker_commission",
+      "attempt": 1,
+      "passed": false,
+      "tables": [
+        {
+          "table": "gold.broker_commission",
+          "legacy_rows": 0,
+          "migrated_rows": 0,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "runtime error:\nAnalysisException: [MISSING_AGGREGATION] The non-aggregating expression \"commission_rate\" is based on columns which are not participating in the GROUP BY clause.\nAdd the columns or the expression to the GROUP BY, aggregate the expression, or use \"any_value(commission_rate)\" if you do not care which of the values within a group is returned. SQLSTATE: 42803;\nProject [broker_id#11227, written_year#11228, policies_written#11229L, written_premium#11230, cast(commission_due#11198 as decimal(38,2)) AS commission_due#11231]\n+- Project [broker_id#11227, written_year#11228, policies_written#11229L, cast(written_premium#11197 as decimal(38,2)) AS written_premium#11230, commission_due#11198]\n   +- Project [broker_id#11227, written_year#11228, cast(policies_written#11196L as bigint) AS policies_written#11229L, written_premium#11197, commission_due#11198]\n      +- Project [broker_id#11227, cast(written_year#11195 as int) AS written_year#11228, policies_written#11196L, written_premium#11197, commission_due#11198]\n         +- Project [cast(broker_id#11183 as string) AS broker_id#11227, written_year#11195, policies_written#11196L, written_premium#11197, commission_due#11198]\n            +- Aggregate [broker_id#11183,"
+          ]
+        }
+      ],
+      "runtime_seconds": 74.82,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J11_rpt_broker_commission",
+      "attempt": 2,
+      "passed": false,
+      "tables": [
+        {
+          "table": "gold.broker_commission",
+          "legacy_rows": 0,
+          "migrated_rows": 0,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "no usable code: J11_rpt_broker_commission: no valid translation after 3 tries (job_py is the same code as an earlier attempt that already failed. Change the logic that causes the reported differences)"
+          ]
+        }
+      ],
+      "runtime_seconds": 237.94,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J11_rpt_broker_commission",
+      "attempt": 3,
+      "passed": false,
+      "tables": [
+        {
+          "table": "gold.broker_commission",
+          "legacy_rows": 0,
+          "migrated_rows": 0,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "no usable code: J11_rpt_broker_commission: no valid translation after 3 tries (job_py is the same code as an earlier attempt that already failed. Change the logic that causes the reported differences)"
+          ]
+        }
+      ],
+      "runtime_seconds": 260.25,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J11_rpt_broker_commission",
+      "attempt": 4,
+      "passed": true,
+      "tables": [
+        {
+          "table": "gold.broker_commission",
+          "legacy_rows": 185,
+          "migrated_rows": 185,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 33.72,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    }
+  ],
+  "notes": [
+    "attempt 1: Reproduced case-insensitive string comparisons using upper() and trim().",
+    "attempt 1: Handled NULLs in status comparisons by filtering out NULLs.",
+    "attempt 1: Used round() for rounding to match T-SQL's round-half-away-from-zero.",
+    "attempt 1: Ensured COUNT(*) counts NULLs and COUNT(col) skips NULLs.",
+    "attempt 1: Matched the target data contract exactly with column names, order, and types.",
+    "escalated to openrouter/particle-ai/particle-1:free after 3 attempts on ollama/qwen2.5-coder:14b",
+    "attempt 4: diagnosis: The legacy expression is SUM(p.annual_premium * b.commission_rate) \u2014 the multiplication happens per row before aggregation \u2014 but attempt 3 wrote F.sum('annual_premium') * F.col('commission_rate'), leaving commission_rate as a non-aggregated column outside the GROUP BY, which Spark rejects with MISSING_AGGREGATION (and would also have produced the wrong number, since the rate must be applied per policy, not to the group total).",
+    "attempt 4: change: Compute the per-row product annual_premium * commission_rate as a decimal column before groupBy and aggregate it with F.sum(...) inside ROUND(...,2), keeping the case-insensitive upper(rtrim()) filters, the 2021-2025 year filter and the contract casts.",
+    "attempt 4: Case-insensitive, trailing-space-insensitive matching via upper(rtrim(col)) on active_flag and status; NULL status/active_flag rows fall out of the WHERE as in T-SQL.",
+    "attempt 4: Commission computed as SUM(annual_premium * commission_rate) per row, then ROUND(...,2) on a decimal column (half away from zero).",
+    "attempt 4: YEAR(start_date) BETWEEN 2021 AND 2025 filter applied, excluding NULL start_date rows.",
+    "attempt 4: COUNT(*) reproduced with count(lit(1)) so NULL premiums still count as policies.",
+    "attempt 4: Decimals kept throughout (premium decimal(20,2), rate decimal(10,6)) to avoid double rounding drift; output cast to decimal(38,2)."
+  ]
+}

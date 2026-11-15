@@ -1,0 +1,51 @@
+{
+  "spec": {
+    "job_id": "J08_rpt_monthly_claims_paid",
+    "layer": "gold",
+    "target_tables": [
+      "gold.monthly_claims_paid"
+    ],
+    "contracts": [
+      {
+        "table": "gold.monthly_claims_paid",
+        "primary_key": [
+          "product_code",
+          "payment_month"
+        ],
+        "columns": [
+          {
+            "name": "product_code",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "payment_month",
+            "dtype": "date",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "claims_paid",
+            "dtype": "bigint",
+            "nullable": false,
+            "rule": ">= 0"
+          },
+          {
+            "name": "payments",
+            "dtype": "bigint",
+            "nullable": false,
+            "rule": ">= 0"
+          },
+          {
+            "name": "indemnity_paid",
+            "dtype": "decimal(38,2)",
+            "nullable": false,
+            "rule": null
+          }
+        ]
+      }
+    ]
+  },
+  "notes": []
+}

@@ -1,0 +1,192 @@
+[
+ {
+  "key": "nameerror: name <x> is not defined. did you mean: <x>?",
+  "symptom": "NameError: name 'upper' is not defined. Did you mean: 'super'?",
+  "fix": null,
+  "confirmed": false,
+  "seen": 11,
+  "jobs": [
+   "J05",
+   "J09"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "job did not return table <table>; returned [<x>]",
+  "symptom": "job did not return table silver.claims; returned ['stg.claims']",
+  "fix": null,
+  "confirmed": false,
+  "seen": 5,
+  "jobs": [
+   "J05"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "typeerror: <x> object is not callable",
+  "symptom": "TypeError: 'Column' object is not callable",
+  "fix": null,
+  "confirmed": false,
+  "seen": 5,
+  "jobs": [
+   "J06"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "pysparkattributeerror: [attribute_not_supported] attribute <x> is not supported.",
+  "symptom": "PySparkAttributeError: [ATTRIBUTE_NOT_SUPPORTED] Attribute `y` is not supported.",
+  "fix": null,
+  "confirmed": false,
+  "seen": 4,
+  "jobs": [
+   "J06"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "analysisexception: [datatype_mismatch.cast_with_func_suggestion] cannot resolve <x> due to data type mismatch: cannot ca",
+  "symptom": "AnalysisException: [DATATYPE_MISMATCH.CAST_WITH_FUNC_SUGGESTION] Cannot resolve \"CAST(start_date AS INT)\" due to data type mismatch: cannot cast \"DATE\" to \"INT\".",
+  "fix": null,
+  "confirmed": false,
+  "seen": 4,
+  "jobs": [
+   "J11"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "analysisexception: [datatype_mismatch.binary_op_diff_types] cannot resolve <x> due to data type mismatch: the left and r",
+  "symptom": "AnalysisException: [DATATYPE_MISMATCH.BINARY_OP_DIFF_TYPES] Cannot resolve \"((amount IS NOT NULL) AND amount)\" due to data type mismatch: the left and right operands of the binary operator have incompatible types (\"BOOLEAN\" and \"DECIMAL(18,3)\"). SQLSTATE: 42K09;",
+  "fix": null,
+  "confirmed": false,
+  "seen": 2,
+  "jobs": [
+   "J04"
+  ],
+  "languages": [
+   "sas"
+  ]
+ },
+ {
+  "key": "attributeerror: module <x> has no attribute <x>",
+  "symptom": "AttributeError: module 'pyspark.sql.functions' has no attribute 'spark'",
+  "fix": null,
+  "confirmed": false,
+  "seen": 2,
+  "jobs": [
+   "J06"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "analysisexception: [ambiguous_reference] reference <x> is ambiguous, could be: [<x>.<x>.<x>.<x>, <x>.<x>.<x>.<x>]. sqlst",
+  "symptom": "AnalysisException: [AMBIGUOUS_REFERENCE] Reference `broker_id` is ambiguous, could be: [`workspace`.`bronze`.`brokers`.`broker_id`, `workspace`.`silver`.`policies`.`broker_id`]. SQLSTATE: 42704",
+  "fix": null,
+  "confirmed": false,
+  "seen": 2,
+  "jobs": [
+   "J11"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "nameerror: name <x> is not defined",
+  "symptom": "NameError: name 'Window' is not defined",
+  "fix": null,
+  "confirmed": false,
+  "seen": 4,
+  "jobs": [
+   "J04",
+   "J06"
+  ],
+  "languages": [
+   "sas",
+   "tsql"
+  ]
+ },
+ {
+  "key": "mismatch:J04:diagnosis: the legacy code treats null amounts as <x> becaus",
+  "symptom": "107 rows differ from legacy output",
+  "fix": "diagnosis: The legacy code treats NULL amounts as 'SMALL' because SAS treats missing numeric values as negative infinity, so 'if amount < 100' evaluates to true for missing amounts. The current PySpark code assigns 'LARGE' to NULL amounts because NULL < 100 evaluates to NULL, causing missing amounts to fall into the otherwise('LARGE') clause. change: Modify the amount_band categorization to treat NULL amounts as 'SMALL'.",
+  "confirmed": true,
+  "seen": 1,
+  "jobs": [
+   "J04"
+  ],
+  "languages": [
+   "sas"
+  ],
+  "fixed_by": "ollama/qwen2.5-coder:14b"
+ },
+ {
+  "key": "datetimeexception: [cast_invalid_input] the value <x> of the type <x> cannot be cast to <x> because it is malformed. cor",
+  "symptom": "DateTimeException: [CAST_INVALID_INPUT] The value 'y.yr-12-31' of the type \"STRING\" cannot be cast to \"DATE\" because it is malformed. Correct the value as per the syntax, or change its target type. Use `try_cast` to tolerate malformed input and return NULL instead. SQLSTATE: 22018",
+  "fix": "diagnosis: Attempt 3 built the year boundaries as literal strings ('y.yr-12-31') instead of deriving them from the exploded yr column, so the cast to DATE failed, and it also computed datediff(x, x) which is always 0. Legacy builds DATEFROMPARTS(y.yr,1,1)/DATEFROMPARTS(y.yr,12,31) per year row, clamps start/end with IIF (NULL condition -> ELSE branch), and takes DATEDIFF(DAY, lo, hi) + 1 for inclusive days. change: Replaced the bogus string literals with F.make_date(yr,1,1)/F.make_date(yr,12,31)",
+  "confirmed": true,
+  "seen": 2,
+  "jobs": [
+   "J06"
+  ],
+  "languages": [
+   "tsql"
+  ],
+  "fixed_by": "openrouter/particle-ai/particle-1:free"
+ },
+ {
+  "key": "mismatch:J11:diagnosis: the legacy code includes a filter on the start_da",
+  "symptom": "37 rows differ from legacy output",
+  "fix": "diagnosis: The legacy code includes a filter on the start_date year between 2021 and 2025, which is not present in the previous migration. This filter is crucial as it excludes policies written outside this range, leading to discrepancies in the output. change: Added a filter to include only policies with start_date year between 2021 and 2025.",
+  "confirmed": true,
+  "seen": 1,
+  "jobs": [
+   "J11"
+  ],
+  "languages": [
+   "tsql"
+  ],
+  "fixed_by": "ollama/qwen2.5-coder:14b"
+ },
+ {
+  "key": "the output did not reconcile with the legacy output",
+  "symptom": "the output did not reconcile with the legacy output",
+  "fix": "diagnosis: The three missing rows have status ' Rejected' with a LEADING space. T-SQL ignores only TRAILING spaces, so ' Rejected' <> 'REJECTED' is TRUE and legacy keeps the row; my previous code used F.trim(), which also stripped the leading space, turning it into 'REJECTED' and wrongly excluding it (the 867-day gap is exactly 461+386+20 from those rows). change: Replaced F.trim() with F.rtrim() so only trailing spaces are ignored when comparing status to 'REJECTED', matching SQL Server semanti",
+  "confirmed": true,
+  "seen": 1,
+  "jobs": [
+   "J05"
+  ],
+  "languages": [
+   "tsql"
+  ],
+  "fixed_by": "openrouter/particle-ai/particle-1:free"
+ },
+ {
+  "key": "payment_count: <n> null values in a not null column",
+  "symptom": "payment_count: 3 NULL values in a NOT NULL column",
+  "fix": "diagnosis: The 3 NULL payment_count values are claims in stg.claims with no matching rows in the payment aggregate: the legacy code applies coalesce(p.payment_count, 0) in the SELECT after the LEFT JOIN, but the previous translation coalesced payment_count on pay_by_claim before the join, so unmatched claims still received NULL from the outer join and violated the NOT NULL contract. change: Moved the coalesce(payment_count, 0) to after the LEFT JOIN (and kept the un-coalesced SUM(CASE WHEN ...) ",
+  "confirmed": true,
+  "seen": 2,
+  "jobs": [
+   "J07"
+  ],
+  "languages": [
+   "sas"
+  ],
+  "fixed_by": "openrouter/particle-ai/particle-1:free"
+ }
+]

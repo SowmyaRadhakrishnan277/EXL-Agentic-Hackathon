@@ -1,0 +1,72 @@
+{
+  "job_id": "J09_rpt_premium_collections",
+  "input_tables": [
+    "stg.premiums"
+  ],
+  "output_tables": [
+    "rpt.premium_collections"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "rpt.premium_collections",
+      "target_column": "due_month",
+      "source_columns": [
+        "stg.premiums.due_date"
+      ],
+      "transformation": "DATEFROMPARTS(YEAR(pm.due_date), MONTH(pm.due_date), 1)"
+    },
+    {
+      "target_table": "rpt.premium_collections",
+      "target_column": "instalments_due",
+      "source_columns": [],
+      "transformation": "COUNT(*)"
+    },
+    {
+      "target_table": "rpt.premium_collections",
+      "target_column": "amount_due",
+      "source_columns": [
+        "stg.premiums.amount"
+      ],
+      "transformation": "SUM(pm.amount)"
+    },
+    {
+      "target_table": "rpt.premium_collections",
+      "target_column": "amount_collected",
+      "source_columns": [
+        "stg.premiums.amount",
+        "stg.premiums.paid_flag"
+      ],
+      "transformation": "SUM(CASE WHEN pm.paid_flag = 'Y' THEN pm.amount ELSE 0 END)"
+    },
+    {
+      "target_table": "rpt.premium_collections",
+      "target_column": "arrears",
+      "source_columns": [
+        "stg.premiums.amount",
+        "stg.premiums.paid_flag"
+      ],
+      "transformation": "SUM(pm.amount) - SUM(CASE WHEN pm.paid_flag = 'Y' THEN pm.amount ELSE 0 END)"
+    },
+    {
+      "target_table": "rpt.premium_collections",
+      "target_column": "collection_rate_pct",
+      "source_columns": [
+        "stg.premiums.amount",
+        "stg.premiums.paid_flag"
+      ],
+      "transformation": "CAST(100.0 * SUM(CASE WHEN pm.paid_flag = 'Y' THEN pm.amount ELSE 0 END) / NULLIF(SUM(pm.amount), 0) AS NUMERIC(9, 2))"
+    }
+  ],
+  "depends_on": [
+    "J03_stg_premiums"
+  ],
+  "wave": 2,
+  "summary": "This job aggregates monthly premium metrics from staging to calculate total instalments due, collected amounts, outstanding arrears, and collection rate percentages. It produces the rpt.premium_collections table used by the Credit Control and Arrears Review teams.",
+  "risk_notes": [
+    "String Comparison / Collation: T-SQL comparison pm.paid_flag = 'Y' is case-insensitive by default, whereas PySpark is case-sensitive and will exclude 'y' unless upper() or lower() is explicitly applied.",
+    "Date Functions & NULL Grouping: DATEFROMPARTS(YEAR(pm.due_date), MONTH(pm.due_date), 1) returns NULL if due_date is NULL. Translating to PySpark date_trunc('month', col('due_date')) correctly preserves NULLs, but COUNT(*) inside groups will count rows with NULL dates.",
+    "Type Precision & Division: The T-SQL calculation casts division results to DECIMAL(9,2). PySpark division (/) implicitly promotes integer/decimal operands to DoubleType, which can introduce floating-point rounding discrepancies unless explicitly cast to DecimalType(9, 2) or formatted using round/bround.",
+    "Division by Zero / NULLIF: PySpark behavior for division by zero depends on spark.sql.ansi.enabled mode (returning NULL vs raising an error). Explicitly porting NULLIF via when(col('amount_due') == 0, lit(null)) is required to ensure consistent cross-environment behavior."
+  ],
+  "method": "sqlglot"
+}

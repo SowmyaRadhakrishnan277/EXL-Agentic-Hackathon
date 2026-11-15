@@ -1,0 +1,13 @@
+Migration run 20261114-lanes  (LLM ollama/qwen2.5-coder:14b, engine databricks-serverless)
+  jobs that fail on ollama escalate to openrouter/particle-ai/particle-1:free  (45 requests left today)
+  J12 local | start  wave 2  -> gold.open_reserves
+  J12 local | attempt 1: failed - columns differ from contract: missing ['age_band'], unexpected ['case when (claim_age_days <= 30) then 0-30 wh
+  J12 local | attempt 2: failed - columns differ from contract: missing ['age_band'], unexpected ['case when (claim_age_days <= 30) then 0-30 wh
+  J12 local | attempt 3: no usable code
+  J12 hosted| escalated to openrouter/particle-ai/particle-1:free  (45 requests left today)
+  J10 local | start  wave 3  -> gold.loss_ratio
+  J12 hosted| attempt 4: passed (legacy output)  32.94s
+  J10 local | attempt 1: failed - PySparkAttributeError: [ATTRIBUTE_NOT_SUPPORTED] Attribute `fullOuterJoin` is not supported.
+  J10 local | attempt 2: passed (legacy output)  111.7s
+
+  matched: 2  repaired: 10

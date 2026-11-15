@@ -1,0 +1,73 @@
+{
+  "record": {
+    "job_id": "J10_rpt_loss_ratio",
+    "language": "sas",
+    "wave": 3,
+    "layer": "gold",
+    "status": "repaired",
+    "attempts": 2,
+    "agent_seconds": 534.8,
+    "manual_estimate_hours": null
+  },
+  "llm": "ollama/qwen2.5-coder:14b",
+  "escalated_from": null,
+  "reports": [
+    {
+      "job_id": "J10_rpt_loss_ratio",
+      "attempt": 1,
+      "passed": false,
+      "tables": [
+        {
+          "table": "gold.loss_ratio",
+          "legacy_rows": 0,
+          "migrated_rows": 0,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "runtime error:\nPySparkAttributeError: [ATTRIBUTE_NOT_SUPPORTED] Attribute `fullOuterJoin` is not supported.\nraised at:\n  job.py line 19: lr = earned.alias('e').fullOuterJoin(incurred.alias('i'),\\"
+          ]
+        }
+      ],
+      "runtime_seconds": 90.35,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J10_rpt_loss_ratio",
+      "attempt": 2,
+      "passed": true,
+      "tables": [
+        {
+          "table": "gold.loss_ratio",
+          "legacy_rows": 47,
+          "migrated_rows": 47,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 111.7,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    }
+  ],
+  "notes": [
+    "attempt 1: Reproduced SAS missing numeric values handling in division.",
+    "attempt 1: Handled NULLs in conditional expressions for 'loss_ratio' calculation.",
+    "attempt 1: Used PySpark 'round()' with explicit precision matching SAS 'round(x, 0.0001)'.",
+    "attempt 1: Trimmed 'product_code' to match fixed-length string padding in SAS.",
+    "attempt 1: Extracted year from 'loss_date' using PySpark 'year()' function.",
+    "attempt 2: diagnosis: The legacy code uses a full outer join between the earned and incurred DataFrames, which is not supported in PySpark. The previous attempt incorrectly used `fullOuterJoin`, which caused a runtime error.",
+    "attempt 2: change: Replaced `fullOuterJoin` with `join` and specified the join type as `outer` to match the legacy full outer join behavior.",
+    "attempt 2: Reproduced the full outer join behavior using `join` with the `outer` type.",
+    "attempt 2: Handled NULL values in conditional expressions to match SAS behavior.",
+    "attempt 2: Ensured the output column names, order, and types match the data contract.",
+    "attempt 2: Fixed the runtime error caused by unsupported `fullOuterJoin`.",
+    "attempt 2: Maintained the correct rounding behavior for `loss_ratio`.",
+    "unit tests: written to test_job.py"
+  ]
+}

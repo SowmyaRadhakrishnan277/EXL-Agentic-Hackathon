@@ -1,0 +1,44 @@
+{
+  "record": {
+    "job_id": "J03_stg_premiums",
+    "language": "tsql",
+    "wave": 1,
+    "layer": "silver",
+    "status": "matched",
+    "attempts": 1,
+    "agent_seconds": 117.2,
+    "manual_estimate_hours": null
+  },
+  "llm": "ollama/qwen2.5-coder:14b",
+  "escalated_from": null,
+  "reports": [
+    {
+      "job_id": "J03_stg_premiums",
+      "attempt": 1,
+      "passed": true,
+      "tables": [
+        {
+          "table": "silver.premiums",
+          "legacy_rows": 428806,
+          "migrated_rows": 428806,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 50.27,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    }
+  ],
+  "notes": [
+    "attempt 1: Reproduced case-insensitive string comparison by using upper(rtrim(col)) on both sides.",
+    "attempt 1: Handled NULL comparisons by not adding coalesce(...,0) unless the legacy code does.",
+    "attempt 1: Removed duplicates before aggregating using distinct().",
+    "attempt 1: Rounded decimal columns using round() to match T-SQL and SAS behavior.",
+    "attempt 1: Preserved the exact schema and column order as per the data contract.",
+    "unit tests: written to test_job.py"
+  ]
+}

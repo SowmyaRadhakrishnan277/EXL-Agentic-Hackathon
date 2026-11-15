@@ -1,0 +1,268 @@
+[
+ {
+  "key": "nameerror: name <x> is not defined. did you mean: <x>?",
+  "symptom": "NameError: name 'upper' is not defined. Did you mean: 'super'?",
+  "fix": null,
+  "confirmed": false,
+  "seen": 11,
+  "jobs": [
+   "J05",
+   "J09"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "job did not return table <table>; returned [<x>]",
+  "symptom": "job did not return table silver.claims; returned ['stg.claims']",
+  "fix": null,
+  "confirmed": false,
+  "seen": 5,
+  "jobs": [
+   "J05"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "typeerror: <x> object is not callable",
+  "symptom": "TypeError: 'Column' object is not callable",
+  "fix": null,
+  "confirmed": false,
+  "seen": 5,
+  "jobs": [
+   "J06"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "pysparkattributeerror: [attribute_not_supported] attribute <x> is not supported.",
+  "symptom": "PySparkAttributeError: [ATTRIBUTE_NOT_SUPPORTED] Attribute `y` is not supported.",
+  "fix": "diagnosis: The legacy code uses a full outer join between the earned and incurred DataFrames, which is not supported in PySpark. The previous attempt incorrectly used `fullOuterJoin`, which caused a runtime error. change: Replaced `fullOuterJoin` with `join` and specified the join type as `outer` to match the legacy full outer join behavior.",
+  "confirmed": true,
+  "seen": 5,
+  "jobs": [
+   "J06",
+   "J10"
+  ],
+  "languages": [
+   "tsql",
+   "sas"
+  ],
+  "fixed_by": "ollama/qwen2.5-coder:14b"
+ },
+ {
+  "key": "analysisexception: [datatype_mismatch.cast_with_func_suggestion] cannot resolve <x> due to data type mismatch: cannot ca",
+  "symptom": "AnalysisException: [DATATYPE_MISMATCH.CAST_WITH_FUNC_SUGGESTION] Cannot resolve \"CAST(start_date AS INT)\" due to data type mismatch: cannot cast \"DATE\" to \"INT\".",
+  "fix": null,
+  "confirmed": false,
+  "seen": 4,
+  "jobs": [
+   "J11"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "analysisexception: [datatype_mismatch.binary_op_diff_types] cannot resolve <x> due to data type mismatch: the left and r",
+  "symptom": "AnalysisException: [DATATYPE_MISMATCH.BINARY_OP_DIFF_TYPES] Cannot resolve \"((amount IS NOT NULL) AND amount)\" due to data type mismatch: the left and right operands of the binary operator have incompatible types (\"BOOLEAN\" and \"DECIMAL(18,3)\"). SQLSTATE: 42K09;",
+  "fix": null,
+  "confirmed": false,
+  "seen": 2,
+  "jobs": [
+   "J04"
+  ],
+  "languages": [
+   "sas"
+  ]
+ },
+ {
+  "key": "attributeerror: module <x> has no attribute <x>",
+  "symptom": "AttributeError: module 'pyspark.sql.functions' has no attribute 'spark'",
+  "fix": null,
+  "confirmed": false,
+  "seen": 2,
+  "jobs": [
+   "J06"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "analysisexception: [ambiguous_reference] reference <x> is ambiguous, could be: [<x>.<x>.<x>.<x>, <x>.<x>.<x>.<x>]. sqlst",
+  "symptom": "AnalysisException: [AMBIGUOUS_REFERENCE] Reference `broker_id` is ambiguous, could be: [`workspace`.`bronze`.`brokers`.`broker_id`, `workspace`.`silver`.`policies`.`broker_id`]. SQLSTATE: 42704",
+  "fix": null,
+  "confirmed": false,
+  "seen": 2,
+  "jobs": [
+   "J11"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "nameerror: name <x> is not defined",
+  "symptom": "NameError: name 'Window' is not defined",
+  "fix": null,
+  "confirmed": false,
+  "seen": 4,
+  "jobs": [
+   "J04",
+   "J06"
+  ],
+  "languages": [
+   "sas",
+   "tsql"
+  ]
+ },
+ {
+  "key": "mismatch:J04:diagnosis: the legacy code treats null amounts as <x> becaus",
+  "symptom": "107 rows differ from legacy output",
+  "fix": "diagnosis: The legacy code treats NULL amounts as 'SMALL' because SAS treats missing numeric values as negative infinity, so 'if amount < 100' evaluates to true for missing amounts. The current PySpark code assigns 'LARGE' to NULL amounts because NULL < 100 evaluates to NULL, causing missing amounts to fall into the otherwise('LARGE') clause. change: Modify the amount_band categorization to treat NULL amounts as 'SMALL'.",
+  "confirmed": true,
+  "seen": 1,
+  "jobs": [
+   "J04"
+  ],
+  "languages": [
+   "sas"
+  ],
+  "fixed_by": "ollama/qwen2.5-coder:14b"
+ },
+ {
+  "key": "datetimeexception: [cast_invalid_input] the value <x> of the type <x> cannot be cast to <x> because it is malformed. cor",
+  "symptom": "DateTimeException: [CAST_INVALID_INPUT] The value 'y.yr-12-31' of the type \"STRING\" cannot be cast to \"DATE\" because it is malformed. Correct the value as per the syntax, or change its target type. Use `try_cast` to tolerate malformed input and return NULL instead. SQLSTATE: 22018",
+  "fix": "diagnosis: Attempt 3 built the year boundaries as literal strings ('y.yr-12-31') instead of deriving them from the exploded yr column, so the cast to DATE failed, and it also computed datediff(x, x) which is always 0. Legacy builds DATEFROMPARTS(y.yr,1,1)/DATEFROMPARTS(y.yr,12,31) per year row, clamps start/end with IIF (NULL condition -> ELSE branch), and takes DATEDIFF(DAY, lo, hi) + 1 for inclusive days. change: Replaced the bogus string literals with F.make_date(yr,1,1)/F.make_date(yr,12,31)",
+  "confirmed": true,
+  "seen": 2,
+  "jobs": [
+   "J06"
+  ],
+  "languages": [
+   "tsql"
+  ],
+  "fixed_by": "openrouter/particle-ai/particle-1:free"
+ },
+ {
+  "key": "mismatch:J11:diagnosis: the legacy code includes a filter on the start_da",
+  "symptom": "37 rows differ from legacy output",
+  "fix": "diagnosis: The legacy code includes a filter on the start_date year between 2021 and 2025, which is not present in the previous migration. This filter is crucial as it excludes policies written outside this range, leading to discrepancies in the output. change: Added a filter to include only policies with start_date year between 2021 and 2025.",
+  "confirmed": true,
+  "seen": 1,
+  "jobs": [
+   "J11"
+  ],
+  "languages": [
+   "tsql"
+  ],
+  "fixed_by": "ollama/qwen2.5-coder:14b"
+ },
+ {
+  "key": "the output did not reconcile with the legacy output",
+  "symptom": "the output did not reconcile with the legacy output",
+  "fix": "diagnosis: The age_band expression was passed to groupBy as an unaliased Column, so Spark named the output column with the full CASE expression text instead of 'age_band' (the contract violation seen in attempts 1-3), and the previous code also carried over a spurious `year(start_date) between 2021 and 2025` filter that the legacy J12 query does not have, plus it used F.trim (stripping leading spaces) instead of rtrim for the case-insensitive 'OPEN' test. change: Materialised age_band (and produ",
+  "confirmed": true,
+  "seen": 1,
+  "jobs": [
+   "J05",
+   "J02",
+   "J07",
+   "J11",
+   "J12"
+  ],
+  "languages": [
+   "tsql",
+   "sas"
+  ],
+  "fixed_by": "openrouter/particle-ai/particle-1:free"
+ },
+ {
+  "key": "payment_count: <n> null values in a not null column",
+  "symptom": "payment_count: 3 NULL values in a NOT NULL column",
+  "fix": "diagnosis: The 3 NULL payment_count values are claims in stg.claims with no matching rows in the payment aggregate: the legacy code applies coalesce(p.payment_count, 0) in the SELECT after the LEFT JOIN, but the previous translation coalesced payment_count on pay_by_claim before the join, so unmatched claims still received NULL from the outer join and violated the NOT NULL contract. change: Moved the coalesce(payment_count, 0) to after the LEFT JOIN (and kept the un-coalesced SUM(CASE WHEN ...) ",
+  "confirmed": true,
+  "seen": 2,
+  "jobs": [
+   "J07"
+  ],
+  "languages": [
+   "sas"
+  ],
+  "fixed_by": "openrouter/particle-ai/particle-1:free"
+ },
+ {
+  "key": "mismatch:J01:diagnosis: the legacy code trims leading spaces from the cou",
+  "symptom": "211 rows differ from legacy output",
+  "fix": "diagnosis: The legacy code trims leading spaces from the county column, which is not reflected in the previous migration. The previous code used `F.rtrim()` which only trims trailing spaces, leading to discrepancies in the county values. change: Replaced `F.rtrim()` with `F.trim()` to match the legacy behavior of trimming both leading and trailing spaces.",
+  "confirmed": true,
+  "seen": 1,
+  "jobs": [
+   "J01"
+  ],
+  "languages": [
+   "tsql"
+  ],
+  "fixed_by": "ollama/qwen2.5-coder:14b"
+ },
+ {
+  "key": "mismatch:J06:diagnosis: the previous attempt built the days_in_force expr",
+  "symptom": "AssertionError:",
+  "fix": "diagnosis: The previous attempt built the days_in_force expression on the `policies` frame *before* the CROSS JOIN, so `F.col('yr')` was unresolved, and it passed bare Python ints (1, 1) to `F.make_date`, which PySpark rejects because it requires Column arguments \u2014 the exception surfaced at the inner `F.when(...)` on line 15. The nested-when structure also failed to reproduce T-SQL IIF semantics, where a NULL start_date/end_date makes the condition unknown and therefore falls to the ELSE branch ",
+  "confirmed": true,
+  "seen": 1,
+  "jobs": [
+   "J06"
+  ],
+  "languages": [
+   "tsql"
+  ],
+  "fixed_by": "openrouter/particle-ai/particle-1:free"
+ },
+ {
+  "key": "due_month: type timestamp, contract says date",
+  "symptom": "due_month: type timestamp, contract says date",
+  "fix": "diagnosis: The legacy code uses DATEFROMPARTS(YEAR(pm.due_date), MONTH(pm.due_date), 1) to derive the due_month, which preserves NULLs if due_date is NULL. The previous translation used date_trunc('month', F.col('due_date')), which returns a timestamp, not a date. Additionally, the previous translation did not explicitly cast the sum of amounts to DecimalType(38, 3), leading to type mismatches. change: Changed due_month to use date_trunc('month', F.col('due_date')).cast('date') to match the date",
+  "confirmed": true,
+  "seen": 2,
+  "jobs": [
+   "J09"
+  ],
+  "languages": [
+   "tsql"
+  ],
+  "fixed_by": "ollama/qwen2.5-coder:14b"
+ },
+ {
+  "key": "analysisexception: [missing_aggregation] the non-aggregating expression <x> is based on columns which are not participat",
+  "symptom": "AnalysisException: [MISSING_AGGREGATION] The non-aggregating expression \"commission_rate\" is based on columns which are not participating in the GROUP BY clause.",
+  "fix": null,
+  "confirmed": false,
+  "seen": 1,
+  "jobs": [
+   "J11"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ },
+ {
+  "key": "columns differ from contract: missing [<x>], unexpected [<x>]",
+  "symptom": "columns differ from contract: missing ['age_band'], unexpected ['case when (claim_age_days <= 30) then 0-30 when (claim_age_days <= 90) then 31-90 when (claim_age_days <= 180) then 91-180 else 180+ end']",
+  "fix": null,
+  "confirmed": false,
+  "seen": 3,
+  "jobs": [
+   "J12"
+  ],
+  "languages": [
+   "tsql"
+  ]
+ }
+]

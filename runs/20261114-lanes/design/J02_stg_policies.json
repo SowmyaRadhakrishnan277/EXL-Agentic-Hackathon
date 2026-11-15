@@ -1,0 +1,94 @@
+{
+  "spec": {
+    "job_id": "J02_stg_policies",
+    "layer": "silver",
+    "target_tables": [
+      "silver.policies"
+    ],
+    "contracts": [
+      {
+        "table": "silver.policies",
+        "primary_key": [
+          "policy_id"
+        ],
+        "columns": [
+          {
+            "name": "policy_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "customer_id",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "product_code",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "line_of_business",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "broker_id",
+            "dtype": "string",
+            "nullable": true,
+            "rule": null
+          },
+          {
+            "name": "channel",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "start_date",
+            "dtype": "date",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "end_date",
+            "dtype": "date",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "rolling_flag",
+            "dtype": "string",
+            "nullable": false,
+            "rule": "in ('Y', 'N')"
+          },
+          {
+            "name": "status",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "annual_premium",
+            "dtype": "decimal(18,2)",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "payment_frequency",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    "guardrail: silver.policies.broker_id kept nullable: legacy output has 27466 NULL values"
+  ]
+}

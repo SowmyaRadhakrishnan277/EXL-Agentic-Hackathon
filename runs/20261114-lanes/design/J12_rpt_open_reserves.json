@@ -1,0 +1,51 @@
+{
+  "spec": {
+    "job_id": "J12_rpt_open_reserves",
+    "layer": "gold",
+    "target_tables": [
+      "gold.open_reserves"
+    ],
+    "contracts": [
+      {
+        "table": "gold.open_reserves",
+        "primary_key": [
+          "product_code",
+          "age_band"
+        ],
+        "columns": [
+          {
+            "name": "product_code",
+            "dtype": "string",
+            "nullable": false,
+            "rule": null
+          },
+          {
+            "name": "age_band",
+            "dtype": "string",
+            "nullable": false,
+            "rule": "in ('0-30','31-90','91-180','180+')"
+          },
+          {
+            "name": "open_claims",
+            "dtype": "bigint",
+            "nullable": false,
+            "rule": ">= 0"
+          },
+          {
+            "name": "claims_with_reserve",
+            "dtype": "bigint",
+            "nullable": false,
+            "rule": ">= 0"
+          },
+          {
+            "name": "total_reserve",
+            "dtype": "decimal(38,2)",
+            "nullable": false,
+            "rule": null
+          }
+        ]
+      }
+    ]
+  },
+  "notes": []
+}

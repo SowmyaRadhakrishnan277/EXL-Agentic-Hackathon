@@ -1,0 +1,77 @@
+{
+  "job_id": "J10_rpt_loss_ratio",
+  "input_tables": [
+    "legacy.claim_totals",
+    "stg.policies",
+    "stg.policy_earned_premium"
+  ],
+  "output_tables": [
+    "legacy.rpt_loss_ratio"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "legacy.rpt_loss_ratio",
+      "target_column": "product_code",
+      "source_columns": [
+        "stg.policies.product_code",
+        "stg.policy_earned_premium.product_code"
+      ],
+      "transformation": "coalesce of product_code from earned premium and policies"
+    },
+    {
+      "target_table": "legacy.rpt_loss_ratio",
+      "target_column": "year",
+      "source_columns": [
+        "legacy.claim_totals.loss_date",
+        "stg.policy_earned_premium.policy_year"
+      ],
+      "transformation": "coalesce of policy_year and year extracted from loss_date"
+    },
+    {
+      "target_table": "legacy.rpt_loss_ratio",
+      "target_column": "earned_premium",
+      "source_columns": [
+        "stg.policy_earned_premium.earned_premium"
+      ],
+      "transformation": "sum of earned_premium grouped by product_code and policy_year"
+    },
+    {
+      "target_table": "legacy.rpt_loss_ratio",
+      "target_column": "incurred",
+      "source_columns": [
+        "legacy.claim_totals.indemnity_paid"
+      ],
+      "transformation": "sum of indemnity_paid grouped by product_code and loss_year"
+    },
+    {
+      "target_table": "legacy.rpt_loss_ratio",
+      "target_column": "claim_count",
+      "source_columns": [],
+      "transformation": "count of matching claim records"
+    },
+    {
+      "target_table": "legacy.rpt_loss_ratio",
+      "target_column": "loss_ratio",
+      "source_columns": [
+        "legacy.claim_totals.indemnity_paid",
+        "stg.policy_earned_premium.earned_premium"
+      ],
+      "transformation": "round(incurred / earned_premium, 0.0001) when earned_premium > 0"
+    }
+  ],
+  "depends_on": [
+    "J02_stg_policies",
+    "J06_stg_policy_earned_premium",
+    "J07_stg_claim_totals"
+  ],
+  "wave": 3,
+  "summary": "This job aggregates earned premiums and incurred claim indemnity by product code and year to calculate loss ratios and claim counts for actuarial pricing reviews, writing the output to a legacy table and a golden CSV.",
+  "risk_notes": [
+    "SAS missing numeric values (.) in division: If 'incurred' is NULL from the full outer join, SAS returns missing for 'loss_ratio', whereas PySpark division with NULL yields NULL, but if 'incurred' is not coalesced to 0, PySpark aggregations or downstream consumers might handle NULL vs 0 differently.",
+    "Conditional threshold evaluation on NULLs: The SAS guard 'if earned_premium > 0' evaluates to false for missing values (.), leaving 'loss_ratio' as missing. PySpark must explicitly handle NULLs in conditional expressions (e.g., spark_when(col('earned_premium') > 0, ...)).",
+    "SAS round() to 0.0001 precision: SAS 'round(x, 0.0001)' uses half-up rounding to 4 decimal places. PySpark 'round()' uses half-up while 'bround()' uses half-even, requiring explicit precision matching.",
+    "Fixed-length string padding: SAS character fields retain fixed lengths (e.g., $10), which can introduce trailing spaces during full outer join comparisons on 'product_code' unless trimmed in PySpark.",
+    "Date parsing for year() extraction: SAS treats 'loss_date' as an integer date value, whereas PySpark 'year()' requires a strict DateType or TimestampType column."
+  ],
+  "method": "rules+gemini"
+}

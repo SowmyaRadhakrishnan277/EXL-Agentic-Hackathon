@@ -1,0 +1,62 @@
+{
+  "job_id": "J12_rpt_open_reserves",
+  "input_tables": [
+    "stg.claims",
+    "stg.policies"
+  ],
+  "output_tables": [
+    "rpt.open_reserves"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "rpt.open_reserves",
+      "target_column": "product_code",
+      "source_columns": [
+        "stg.policies.product_code"
+      ],
+      "transformation": "p.product_code"
+    },
+    {
+      "target_table": "rpt.open_reserves",
+      "target_column": "age_band",
+      "source_columns": [
+        "stg.claims.claim_age_days"
+      ],
+      "transformation": "CASE WHEN c.claim_age_days <= 30 THEN '0-30' WHEN c.claim_age_days <= 90 THEN '31-90' WHEN c.claim_age_days <= 180 THEN '91-180' ELSE '180+' END"
+    },
+    {
+      "target_table": "rpt.open_reserves",
+      "target_column": "open_claims",
+      "source_columns": [],
+      "transformation": "COUNT(*)"
+    },
+    {
+      "target_table": "rpt.open_reserves",
+      "target_column": "claims_with_reserve",
+      "source_columns": [
+        "stg.claims.reserve_amount"
+      ],
+      "transformation": "COUNT(c.reserve_amount)"
+    },
+    {
+      "target_table": "rpt.open_reserves",
+      "target_column": "total_reserve",
+      "source_columns": [
+        "stg.claims.reserve_amount"
+      ],
+      "transformation": "SUM(c.reserve_amount)"
+    }
+  ],
+  "depends_on": [
+    "J02_stg_policies",
+    "J05_stg_claims"
+  ],
+  "wave": 2,
+  "summary": "This job aggregates open claim counts and total reserve amounts grouped by product code and claim age bands into rpt.open_reserves for the Reserving committee.",
+  "risk_notes": [
+    "String Comparison: T-SQL filter `c.status = 'OPEN'` is case-insensitive under default SQL Server collations (matching 'Open' or 'open'), whereas PySpark filter comparisons are strictly case-sensitive.",
+    "NULL Handling in Age Bands: If `c.claim_age_days` is NULL, T-SQL assigns the row to the `ELSE '180+'` band; PySpark `when()` logic will behave similarly but should explicitly handle NULLs to avoid miscategorization.",
+    "Decimal Precision on SUM: T-SQL `SUM(c.reserve_amount)` preserves fixed-point `DECIMAL` precision and scale, whereas PySpark may alter decimal scale/precision rules or promote to `DoubleType` if the source Delta/Parquet schema is not strictly typed."
+  ],
+  "method": "sqlglot"
+}

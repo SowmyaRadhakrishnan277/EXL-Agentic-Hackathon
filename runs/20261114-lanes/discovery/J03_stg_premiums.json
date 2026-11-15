@@ -1,0 +1,68 @@
+{
+  "job_id": "J03_stg_premiums",
+  "input_tables": [
+    "dbo.premiums"
+  ],
+  "output_tables": [
+    "stg.premiums"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "stg.premiums",
+      "target_column": "premium_id",
+      "source_columns": [
+        "dbo.premiums.premium_id"
+      ],
+      "transformation": "pm.premium_id"
+    },
+    {
+      "target_table": "stg.premiums",
+      "target_column": "policy_id",
+      "source_columns": [
+        "dbo.premiums.policy_id"
+      ],
+      "transformation": "pm.policy_id"
+    },
+    {
+      "target_table": "stg.premiums",
+      "target_column": "due_date",
+      "source_columns": [
+        "dbo.premiums.due_date"
+      ],
+      "transformation": "pm.due_date"
+    },
+    {
+      "target_table": "stg.premiums",
+      "target_column": "paid_date",
+      "source_columns": [
+        "dbo.premiums.paid_date"
+      ],
+      "transformation": "pm.paid_date"
+    },
+    {
+      "target_table": "stg.premiums",
+      "target_column": "amount",
+      "source_columns": [
+        "dbo.premiums.amount"
+      ],
+      "transformation": "pm.amount"
+    },
+    {
+      "target_table": "stg.premiums",
+      "target_column": "paid_flag",
+      "source_columns": [
+        "dbo.premiums.paid_date"
+      ],
+      "transformation": "CASE WHEN pm.paid_date IS NULL THEN 'N' ELSE 'Y' END"
+    }
+  ],
+  "depends_on": [],
+  "wave": 1,
+  "summary": "This job extracts premium instalment records from the billing system, removes exact duplicate rows, and computes a binary payment status flag to populate the staging premiums table for downstream financial processing.",
+  "risk_notes": [
+    "De-duplication via `SELECT DISTINCT`: If `amount` is read into PySpark as `DoubleType` instead of `DecimalType`, floating-point representation differences can cause `.distinct()` to fail to collapse rows that T-SQL considered duplicate.",
+    "Null evaluation in `CASE WHEN pm.paid_date IS NULL`: Implicit string-to-date conversion errors during PySpark ingestion can turn malformed dates into `NULL`, incorrectly triggering the 'N' branch of `paid_flag`.",
+    "Schema inference on `amount`: T-SQL `SELECT INTO` preserves exact source column data types (e.g., `DECIMAL(18,2)`), whereas PySpark reader defaults might infer `DecimalType(38,18)` or floating-point types, causing precision mismatches in the lakehouse schema."
+  ],
+  "method": "sqlglot"
+}

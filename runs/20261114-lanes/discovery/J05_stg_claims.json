@@ -1,0 +1,85 @@
+{
+  "job_id": "J05_stg_claims",
+  "input_tables": [
+    "dbo.claims"
+  ],
+  "output_tables": [
+    "stg.claims"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "stg.claims",
+      "target_column": "claim_id",
+      "source_columns": [
+        "dbo.claims.claim_id"
+      ],
+      "transformation": "c.claim_id"
+    },
+    {
+      "target_table": "stg.claims",
+      "target_column": "policy_id",
+      "source_columns": [
+        "dbo.claims.policy_id"
+      ],
+      "transformation": "c.policy_id"
+    },
+    {
+      "target_table": "stg.claims",
+      "target_column": "loss_date",
+      "source_columns": [
+        "dbo.claims.loss_date"
+      ],
+      "transformation": "c.loss_date"
+    },
+    {
+      "target_table": "stg.claims",
+      "target_column": "reported_date",
+      "source_columns": [
+        "dbo.claims.reported_date"
+      ],
+      "transformation": "c.reported_date"
+    },
+    {
+      "target_table": "stg.claims",
+      "target_column": "claim_type",
+      "source_columns": [
+        "dbo.claims.claim_type"
+      ],
+      "transformation": "c.claim_type"
+    },
+    {
+      "target_table": "stg.claims",
+      "target_column": "status",
+      "source_columns": [
+        "dbo.claims.status"
+      ],
+      "transformation": "c.status"
+    },
+    {
+      "target_table": "stg.claims",
+      "target_column": "reserve_amount",
+      "source_columns": [
+        "dbo.claims.reserve_amount"
+      ],
+      "transformation": "c.reserve_amount"
+    },
+    {
+      "target_table": "stg.claims",
+      "target_column": "claim_age_days",
+      "source_columns": [
+        "dbo.claims.reported_date"
+      ],
+      "transformation": "DATEDIFF(DAY, CAST(c.reported_date AS DATETIME2), CAST(CAST('2025-12-31' AS DATE) AS DATETIME2))"
+    }
+  ],
+  "depends_on": [],
+  "wave": 1,
+  "summary": "Nightly staging job J05 extracts active claims from `dbo.claims` into `stg.claims`, excluding rejected claims and computing `claim_age_days` relative to a static as-of date (2025-12-31).",
+  "risk_notes": [
+    "String Collation/Case Sensitivity: T-SQL `c.status <> 'REJECTED'` is case-insensitive by default, whereas PySpark equality checks are case-sensitive. Lowercase or titlecase values like 'rejected' will incorrectly pass through in PySpark unless normalized using `upper(col('status')) != 'REJECTED'`.",
+    "Date Function Parameter Order: T-SQL `DATEDIFF(DAY, start, end)` takes the start date (`reported_date`) before the end date (`@asof`). PySpark `datediff(end, start)` expects the end date first (`datediff(lit('2025-12-31'), col('reported_date'))`); reversing them yields negative day counts.",
+    "NULL Handling in Filtering: In T-SQL, `status <> 'REJECTED'` evaluates to UNKNOWN and excludes `NULL` values. While PySpark's `filter(col('status') != 'REJECTED')` also drops NULLs, explicit null handling should be confirmed to prevent unintended record loss if `status` can be NULL.",
+    "Hardcoded Parameter: The `@asof` variable is hardcoded to '2025-12-31'. Translating this without a parameterized workflow mechanism (e.g., Airflow/Databricks job parameters) will cause static age calculations in production."
+  ],
+  "method": "sqlglot"
+}

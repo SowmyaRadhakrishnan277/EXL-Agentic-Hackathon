@@ -1,0 +1,159 @@
+{
+  "record": {
+    "job_id": "J01_stg_customers",
+    "language": "tsql",
+    "wave": 1,
+    "layer": "silver",
+    "status": "repaired",
+    "attempts": 2,
+    "agent_seconds": 177.1,
+    "manual_estimate_hours": null
+  },
+  "llm": "ollama/qwen2.5-coder:14b",
+  "escalated_from": null,
+  "reports": [
+    {
+      "job_id": "J01_stg_customers",
+      "attempt": 1,
+      "passed": false,
+      "tables": [
+        {
+          "table": "silver.customers",
+          "legacy_rows": 35000,
+          "migrated_rows": 35000,
+          "column_total_diffs": {},
+          "mismatched_keys": 211,
+          "sample_mismatches": [
+            {
+              "customer_id": "C0001118",
+              "county": {
+                "legacy": "DONEGAL",
+                "migrated": " DONEGAL"
+              }
+            },
+            {
+              "customer_id": "C0005867",
+              "county": {
+                "legacy": "DUBLIN",
+                "migrated": " DUBLIN"
+              }
+            },
+            {
+              "customer_id": "C0010180",
+              "county": {
+                "legacy": "GALWAY",
+                "migrated": " GALWAY"
+              }
+            },
+            {
+              "customer_id": "C0011811",
+              "county": {
+                "legacy": "DONEGAL",
+                "migrated": " DONEGAL"
+              }
+            },
+            {
+              "customer_id": "C0013500",
+              "county": {
+                "legacy": "MEATH",
+                "migrated": " MEATH"
+              }
+            },
+            {
+              "customer_id": "C0016143",
+              "county": {
+                "legacy": "MAYO",
+                "migrated": " MAYO"
+              }
+            },
+            {
+              "customer_id": "C0018393",
+              "county": {
+                "legacy": "DUBLIN",
+                "migrated": " DUBLIN"
+              }
+            },
+            {
+              "customer_id": "C0004651",
+              "county": {
+                "legacy": "DUBLIN",
+                "migrated": " DUBLIN"
+              }
+            }
+          ],
+          "input_rows": [
+            {
+              "input_table": "dbo.customers",
+              "customer_id": "C0001118",
+              "first_name": "Abbie",
+              "last_name": "O'Rafferty",
+              "date_of_birth": "1949-11-20",
+              "county": " Donegal",
+              "customer_since": "2014-04-20",
+              "segment": "RETAIL"
+            },
+            {
+              "input_table": "dbo.customers",
+              "customer_id": "C0005867",
+              "first_name": "Dervla",
+              "last_name": "Connors",
+              "date_of_birth": "1999-04-21",
+              "county": " Dublin",
+              "customer_since": "2019-04-15",
+              "segment": "RETAIL"
+            },
+            {
+              "input_table": "dbo.customers",
+              "customer_id": "C0010180",
+              "first_name": "Danny",
+              "last_name": "MacGuinness",
+              "date_of_birth": "2003-06-26",
+              "county": " Galway",
+              "customer_since": "2024-11-25",
+              "segment": "RETAIL"
+            }
+          ],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 56.68,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    },
+    {
+      "job_id": "J01_stg_customers",
+      "attempt": 2,
+      "passed": true,
+      "tables": [
+        {
+          "table": "silver.customers",
+          "legacy_rows": 35000,
+          "migrated_rows": 35000,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 41.23,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    }
+  ],
+  "notes": [
+    "attempt 1: Reproduced case-insensitive string comparison with rtrim.",
+    "attempt 1: Handled NULL comparisons as in legacy code.",
+    "attempt 1: Used calendar-year boundary calculation for age_years.",
+    "attempt 1: Preserved the exact output column names, order, and types.",
+    "attempt 1: Ensured NULL-key rows are not dropped in GROUP BY.",
+    "attempt 2: diagnosis: The legacy code trims leading spaces from the county column, which is not reflected in the previous migration. The previous code used `F.rtrim()` which only trims trailing spaces, leading to discrepancies in the county values.",
+    "attempt 2: change: Replaced `F.rtrim()` with `F.trim()` to match the legacy behavior of trimming both leading and trailing spaces.",
+    "attempt 2: Legacy code trims leading and trailing spaces from the county column.",
+    "attempt 2: Legacy code calculates age in years by counting calendar year boundaries.",
+    "attempt 2: Legacy code uses a fixed date for age calculation.",
+    "attempt 2: Legacy code does not handle NULL values in the same way as PySpark.",
+    "attempt 2: Legacy code does not drop NULL-key rows in GROUP BY operations.",
+    "unit tests: written to test_job.py"
+  ]
+}

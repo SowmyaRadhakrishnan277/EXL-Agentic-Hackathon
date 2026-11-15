@@ -1,0 +1,125 @@
+{
+  "record": {
+    "job_id": "J12_rpt_open_reserves",
+    "language": "tsql",
+    "wave": 2,
+    "layer": "gold",
+    "status": "repaired",
+    "attempts": 4,
+    "agent_seconds": 358.6,
+    "manual_estimate_hours": null
+  },
+  "llm": "openrouter/particle-ai/particle-1:free",
+  "escalated_from": "ollama/qwen2.5-coder:14b",
+  "reports": [
+    {
+      "job_id": "J12_rpt_open_reserves",
+      "attempt": 1,
+      "passed": false,
+      "tables": [
+        {
+          "table": "gold.open_reserves",
+          "legacy_rows": 0,
+          "migrated_rows": 21,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "columns differ from contract: missing ['age_band'], unexpected ['case when (claim_age_days <= 30) then 0-30 when (claim_age_days <= 90) then 31-90 when (claim_age_days <= 180) then 91-180 else 180+ end']"
+          ]
+        }
+      ],
+      "runtime_seconds": 65.7,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J12_rpt_open_reserves",
+      "attempt": 2,
+      "passed": false,
+      "tables": [
+        {
+          "table": "gold.open_reserves",
+          "legacy_rows": 0,
+          "migrated_rows": 21,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "columns differ from contract: missing ['age_band'], unexpected ['case when (claim_age_days <= 30) then 0-30 when (claim_age_days <= 90) then 31-90 when (claim_age_days <= 180) then 91-180 else 180+ end']"
+          ]
+        }
+      ],
+      "runtime_seconds": 71.35,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J12_rpt_open_reserves",
+      "attempt": 3,
+      "passed": false,
+      "tables": [
+        {
+          "table": "gold.open_reserves",
+          "legacy_rows": 0,
+          "migrated_rows": 0,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "no usable code: J12_rpt_open_reserves: no valid translation after 3 tries (job_py is the same code as an earlier attempt that already failed. Change the logic that causes the reported differences)"
+          ]
+        }
+      ],
+      "runtime_seconds": 182.31,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J12_rpt_open_reserves",
+      "attempt": 4,
+      "passed": true,
+      "tables": [
+        {
+          "table": "gold.open_reserves",
+          "legacy_rows": 21,
+          "migrated_rows": 21,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 32.94,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    }
+  ],
+  "notes": [
+    "attempt 1: Reproduced case-insensitive string comparison for 'status' column.",
+    "attempt 1: Handled NULL values in 'claim_age_days' for age band categorization.",
+    "attempt 1: Preserved decimal precision for 'total_reserve' using DecimalType(38, 2).",
+    "attempt 1: Ensured COUNT(*) counts all rows including NULLs.",
+    "attempt 1: Matched the target data contract exactly.",
+    "attempt 2: diagnosis: The legacy code includes a filter on the start_date year between 2021 and 2025, which is not present in the previous migration. This filter is crucial as it excludes policies written outside this range, leading to discrepancies in the output.",
+    "attempt 2: change: Added a filter to include only policies with start_date year between 2021 and 2025.",
+    "attempt 2: String Comparison: T-SQL filter `c.status = 'OPEN'` is case-insensitive under default SQL Server collations (matching 'Open' or 'open'), whereas PySpark filter comparisons are strictly case-sensitive.",
+    "attempt 2: NULL Handling in Age Bands: If `c.claim_age_days` is NULL, T-SQL assigns the row to the `ELSE '180+'` band; PySpark `when()` logic will behave similarly but should explicitly handle NULLs to avoid miscategorization.",
+    "attempt 2: Decimal Precision on SUM: T-SQL `SUM(c.reserve_amount)` preserves fixed-point `DECIMAL` precision and scale, whereas PySpark may alter decimal scale/precision rules or promote to `DoubleType` if the source Delta/Parquet schema is not strictly typed.",
+    "attempt 2: Filter on start_date year between 2021 and 2025 is crucial for matching legacy output.",
+    "attempt 2: Ensure all columns match the data contract exactly.",
+    "escalated to openrouter/particle-ai/particle-1:free after 3 attempts on ollama/qwen2.5-coder:14b",
+    "attempt 4: diagnosis: The age_band expression was passed to groupBy as an unaliased Column, so Spark named the output column with the full CASE expression text instead of 'age_band' (the contract violation seen in attempts 1-3), and the previous code also carried over a spurious `year(start_date) between 2021 and 2025` filter that the legacy J12 query does not have, plus it used F.trim (stripping leading spaces) instead of rtrim for the case-insensitive 'OPEN' test.",
+    "attempt 4: change: Materialised age_band (and product_code) as properly named columns via withColumn before grouping, removed the non-legacy start_date year filter, and switched the status predicate to upper(rtrim(status)) = 'OPEN'.",
+    "attempt 4: age_band is materialised as a real column named 'age_band' before GROUP BY, matching the data contract.",
+    "attempt 4: status filter uses upper(rtrim(status)) = 'OPEN' so 'open'/'OPEN  ' match but ' Open' does not.",
+    "attempt 4: NULL claim_age_days falls to ELSE '180+' exactly as T-SQL CASE does.",
+    "attempt 4: COUNT(*) counts all rows; COUNT(reserve_amount) skips NULL reserves.",
+    "attempt 4: SUM(reserve_amount) kept in decimal and cast to decimal(38,2); no start_date year filter (not in legacy J12).",
+    "unit tests: written to test_job.py"
+  ]
+}

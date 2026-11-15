@@ -1,0 +1,215 @@
+{
+  "record": {
+    "job_id": "J02_stg_policies",
+    "language": "tsql",
+    "wave": 1,
+    "layer": "silver",
+    "status": "repaired",
+    "attempts": 4,
+    "agent_seconds": 512.4,
+    "manual_estimate_hours": null
+  },
+  "llm": "openrouter/particle-ai/particle-1:free",
+  "escalated_from": "ollama/qwen2.5-coder:14b",
+  "reports": [
+    {
+      "job_id": "J02_stg_policies",
+      "attempt": 1,
+      "passed": false,
+      "tables": [
+        {
+          "table": "silver.policies",
+          "legacy_rows": 50000,
+          "migrated_rows": 50000,
+          "column_total_diffs": {},
+          "mismatched_keys": 3695,
+          "sample_mismatches": [
+            {
+              "policy_id": "P00000126",
+              "rolling_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "policy_id": "P00000231",
+              "rolling_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "policy_id": "P00001610",
+              "rolling_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "policy_id": "P00001644",
+              "rolling_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "policy_id": "P00001809",
+              "rolling_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "policy_id": "P00002087",
+              "rolling_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "policy_id": "P00002135",
+              "rolling_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            },
+            {
+              "policy_id": "P00002721",
+              "rolling_flag": {
+                "legacy": "Y",
+                "migrated": "N"
+              }
+            }
+          ],
+          "input_rows": [
+            {
+              "input_table": "dbo.policies",
+              "policy_id": "P00000126",
+              "customer_id": "C0011389",
+              "product_code": "MOT-STD",
+              "broker_id": null,
+              "channel": "ONLINE",
+              "start_date": "2025-05-05",
+              "end_date": null,
+              "status": "ACTIVE",
+              "annual_premium": "826.02",
+              "payment_frequency": "QUARTERLY",
+              "sum_insured": "84200.00"
+            },
+            {
+              "input_table": "dbo.policies",
+              "policy_id": "P00000231",
+              "customer_id": "C0032156",
+              "product_code": "LND-STD",
+              "broker_id": null,
+              "channel": "DIRECT",
+              "start_date": "2023-07-20",
+              "end_date": null,
+              "status": "ACTIVE",
+              "annual_premium": "462.97",
+              "payment_frequency": "MONTHLY",
+              "sum_insured": "25900.00"
+            },
+            {
+              "input_table": "dbo.policies",
+              "policy_id": "P00001610",
+              "customer_id": "C0027944",
+              "product_code": "LND-STD",
+              "broker_id": null,
+              "channel": "DIRECT",
+              "start_date": "2025-02-07",
+              "end_date": null,
+              "status": "ACTIVE",
+              "annual_premium": "441.89",
+              "payment_frequency": "MONTHLY",
+              "sum_insured": "25100.00"
+            }
+          ],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 87.79,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    },
+    {
+      "job_id": "J02_stg_policies",
+      "attempt": 2,
+      "passed": false,
+      "tables": [
+        {
+          "table": "silver.policies",
+          "legacy_rows": 0,
+          "migrated_rows": 0,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "no usable code: J02_stg_policies: no valid translation after 3 tries (job_py is the same code as an earlier attempt that already failed. Change the logic that causes the reported differences)"
+          ]
+        }
+      ],
+      "runtime_seconds": 202.89,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J02_stg_policies",
+      "attempt": 3,
+      "passed": false,
+      "tables": [
+        {
+          "table": "silver.policies",
+          "legacy_rows": 0,
+          "migrated_rows": 0,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "no usable code: J02_stg_policies: no valid translation after 3 tries (job_py is the same code as an earlier attempt that already failed. Change the logic that causes the reported differences)"
+          ]
+        }
+      ],
+      "runtime_seconds": 198.24,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J02_stg_policies",
+      "attempt": 4,
+      "passed": true,
+      "tables": [
+        {
+          "table": "silver.policies",
+          "legacy_rows": 50000,
+          "migrated_rows": 50000,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 18.71,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    }
+  ],
+  "notes": [
+    "attempt 1: Reproduced SQL Server's case-insensitive string comparison by converting to upper.",
+    "attempt 1: Handled NULL comparisons by using COALESCE for default values.",
+    "attempt 1: Ensured date formatting and defaulting for end_date.",
+    "attempt 1: Maintained the rolling_flag logic based on end_date.",
+    "attempt 1: Standardized status by trimming and converting to upper.",
+    "escalated to openrouter/particle-ai/particle-1:free after 3 attempts on ollama/qwen2.5-coder:14b",
+    "attempt 4: diagnosis: The previous code computed rolling_flag AFTER coalescing end_date to 9999-12-31, so end_date was never NULL and every row got 'N'; legacy derives rolling_flag from the original p.end_date (NULL -> 'Y'), as shown by P00000126/P00000231/P00001610 which all have end_date null in dbo.policies but legacy outputs 'Y'. Additionally status must be UPPER(LTRIM(RTRIM(...))) (both sides trimmed) and the case-insensitive product_code join must not alter the output product_code value.",
+    "attempt 4: change: Compute rolling_flag from the raw end_date before the COALESCE, use F.upper(F.trim(status)) for status, and join on an upper(rtrim(product_code)) surrogate key while keeping the original p.product_code in the output.",
+    "attempt 4: rolling_flag computed from raw end_date before COALESCE default",
+    "attempt 4: end_date defaulted to 9999-12-31 only in the output column",
+    "attempt 4: status = UPPER(LTRIM(RTRIM(status))) matching T-SQL trim semantics",
+    "attempt 4: INNER JOIN on case-insensitive, trailing-space-insensitive product_code key",
+    "attempt 4: output keeps original product_code value and contract column order/types"
+  ]
+}

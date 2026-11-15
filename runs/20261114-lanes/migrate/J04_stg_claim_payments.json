@@ -1,0 +1,161 @@
+{
+  "record": {
+    "job_id": "J04_stg_claim_payments",
+    "language": "sas",
+    "wave": 1,
+    "layer": "silver",
+    "status": "repaired",
+    "attempts": 2,
+    "agent_seconds": 200.9,
+    "manual_estimate_hours": null
+  },
+  "llm": "ollama/qwen2.5-coder:14b",
+  "escalated_from": null,
+  "reports": [
+    {
+      "job_id": "J04_stg_claim_payments",
+      "attempt": 1,
+      "passed": false,
+      "tables": [
+        {
+          "table": "silver.claim_payments",
+          "legacy_rows": 12689,
+          "migrated_rows": 12689,
+          "column_total_diffs": {},
+          "mismatched_keys": 107,
+          "sample_mismatches": [
+            {
+              "payment_id": "CP000001241",
+              "amount_band": {
+                "legacy": "SMALL",
+                "migrated": "LARGE"
+              }
+            },
+            {
+              "payment_id": "CP000005847",
+              "amount_band": {
+                "legacy": "SMALL",
+                "migrated": "LARGE"
+              }
+            },
+            {
+              "payment_id": "CP000007873",
+              "amount_band": {
+                "legacy": "SMALL",
+                "migrated": "LARGE"
+              }
+            },
+            {
+              "payment_id": "CP000003278",
+              "amount_band": {
+                "legacy": "SMALL",
+                "migrated": "LARGE"
+              }
+            },
+            {
+              "payment_id": "CP000004876",
+              "amount_band": {
+                "legacy": "SMALL",
+                "migrated": "LARGE"
+              }
+            },
+            {
+              "payment_id": "CP000006778",
+              "amount_band": {
+                "legacy": "SMALL",
+                "migrated": "LARGE"
+              }
+            },
+            {
+              "payment_id": "CP000007861",
+              "amount_band": {
+                "legacy": "SMALL",
+                "migrated": "LARGE"
+              }
+            },
+            {
+              "payment_id": "CP000010275",
+              "amount_band": {
+                "legacy": "SMALL",
+                "migrated": "LARGE"
+              }
+            }
+          ],
+          "input_rows": [
+            {
+              "input_table": "dbo.claim_payments",
+              "payment_id": "CP000001241",
+              "claim_id": "CL00000666",
+              "payment_date": "2021-10-03",
+              "payment_type": "EXPENSE",
+              "amount": null
+            },
+            {
+              "input_table": "dbo.claim_payments",
+              "payment_id": "CP000001241",
+              "claim_id": "CL00000666",
+              "payment_date": "2021-10-03",
+              "payment_type": "EXPENSE",
+              "amount": null
+            },
+            {
+              "input_table": "dbo.claim_payments",
+              "payment_id": "CP000005847",
+              "claim_id": "CL00003229",
+              "payment_date": "2022-03-31",
+              "payment_type": "EXPENSE",
+              "amount": null
+            },
+            {
+              "input_table": "dbo.claim_payments",
+              "payment_id": "CP000007873",
+              "claim_id": "CL00004364",
+              "payment_date": "2024-04-20",
+              "payment_type": "INDEMNITY",
+              "amount": null
+            }
+          ],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 60.77,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    },
+    {
+      "job_id": "J04_stg_claim_payments",
+      "attempt": 2,
+      "passed": true,
+      "tables": [
+        {
+          "table": "silver.claim_payments",
+          "legacy_rows": 12689,
+          "migrated_rows": 12689,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 61.74,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    }
+  ],
+  "notes": [
+    "attempt 1: Reproduced SAS proc sort with nodupkey behavior by using window functions to retain the first occurrence of each payment_id.",
+    "attempt 1: Handled SAS missing numeric values by treating them as 'SMALL' in the amount_band categorization.",
+    "attempt 1: Ensured date conversion matches SAS behavior by using to_date with strict formatting.",
+    "attempt 1: Maintained the order of columns and types as per the target data contract.",
+    "attempt 1: Used round() on DECIMAL columns to match T-SQL and SAS rounding behavior.",
+    "attempt 2: diagnosis: The legacy code treats NULL amounts as 'SMALL' because SAS treats missing numeric values as negative infinity, so 'if amount < 100' evaluates to true for missing amounts. The current PySpark code assigns 'LARGE' to NULL amounts because NULL < 100 evaluates to NULL, causing missing amounts to fall into the otherwise('LARGE') clause.",
+    "attempt 2: change: Modify the amount_band categorization to treat NULL amounts as 'SMALL'.",
+    "attempt 2: SAS treats missing numeric values as negative infinity, so 'if amount < 100' evaluates to true for missing amounts.",
+    "attempt 2: PySpark evaluates NULL < 100 as NULL, causing missing amounts to fall into the otherwise('LARGE') clause.",
+    "attempt 2: Modified the amount_band categorization to treat NULL amounts as 'SMALL'.",
+    "attempt 2: Deduplication by payment_id retains the first occurrence, matching SAS proc sort with nodupkey.",
+    "attempt 2: Output column names, order, and types match the data contract exactly.",
+    "unit tests: written to test_job.py"
+  ]
+}

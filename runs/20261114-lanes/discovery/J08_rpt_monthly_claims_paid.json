@@ -1,0 +1,65 @@
+{
+  "job_id": "J08_rpt_monthly_claims_paid",
+  "input_tables": [
+    "dbo.claim_payments",
+    "stg.claims",
+    "stg.policies"
+  ],
+  "output_tables": [
+    "rpt.monthly_claims_paid"
+  ],
+  "column_lineage": [
+    {
+      "target_table": "rpt.monthly_claims_paid",
+      "target_column": "product_code",
+      "source_columns": [
+        "stg.policies.product_code"
+      ],
+      "transformation": "p.product_code"
+    },
+    {
+      "target_table": "rpt.monthly_claims_paid",
+      "target_column": "payment_month",
+      "source_columns": [
+        "dbo.claim_payments.payment_date"
+      ],
+      "transformation": "DATEFROMPARTS(YEAR(cp.payment_date), MONTH(cp.payment_date), 1)"
+    },
+    {
+      "target_table": "rpt.monthly_claims_paid",
+      "target_column": "claims_paid",
+      "source_columns": [
+        "dbo.claim_payments.claim_id"
+      ],
+      "transformation": "COUNT(DISTINCT cp.claim_id)"
+    },
+    {
+      "target_table": "rpt.monthly_claims_paid",
+      "target_column": "payments",
+      "source_columns": [],
+      "transformation": "COUNT(*)"
+    },
+    {
+      "target_table": "rpt.monthly_claims_paid",
+      "target_column": "indemnity_paid",
+      "source_columns": [
+        "dbo.claim_payments.amount"
+      ],
+      "transformation": "ROUND(SUM(cp.amount), 2)"
+    }
+  ],
+  "depends_on": [
+    "J02_stg_policies",
+    "J05_stg_claims"
+  ],
+  "wave": 2,
+  "summary": "This job aggregates monthly indemnity payment metrics (distinct claims count, total payments count, and total rounded indemnity amount) by product code and payment month for the Finance team's month-end pack.",
+  "risk_notes": [
+    "Date truncation: T-SQL DATEFROMPARTS(YEAR(...), MONTH(...), 1) constructs the first day of the month; in PySpark this must be translated using trunc(col('payment_date'), 'month') or date_trunc('month', ...) to correctly handle DateType vs TimestampType semantics.",
+    "String collation: The predicate `cp.payment_type = 'INDEMNITY'` is case-insensitive in default T-SQL collations (SQL_Latin1_General_CP1_CI_AS), whereas Spark SQL string comparisons are case-sensitive by default unless upper()/lower() or collation configs are explicitly applied.",
+    "Rounding behavior: T-SQL ROUND() on Decimal/Numeric types rounds half-away-from-zero (ROUND_HALF_UP), whereas PySpark's round() function performs round-half-to-even (banker's rounding), which can cause off-by-one-cent discrepancies in financial summaries.",
+    "Data type precision: If cp.amount is stored as float/double rather than DecimalType in the Spark source, SUM() can accumulate floating-point representation inaccuracies prior to rounding.",
+    "De-duplication scope: The subquery applies `SELECT DISTINCT` across 5 specific projection columns. If the underlying `dbo.claim_payments` table has additional columns not in the subquery, a generic PySpark dropDuplicates() on the full table will fail to replicate the intended deduplication."
+  ],
+  "method": "sqlglot"
+}

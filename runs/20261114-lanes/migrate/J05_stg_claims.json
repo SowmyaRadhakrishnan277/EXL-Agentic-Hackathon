@@ -1,0 +1,167 @@
+{
+  "record": {
+    "job_id": "J05_stg_claims",
+    "language": "tsql",
+    "wave": 1,
+    "layer": "silver",
+    "status": "repaired",
+    "attempts": 3,
+    "agent_seconds": 333.6,
+    "manual_estimate_hours": null
+  },
+  "llm": "ollama/qwen2.5-coder:14b",
+  "escalated_from": null,
+  "reports": [
+    {
+      "job_id": "J05_stg_claims",
+      "attempt": 1,
+      "passed": false,
+      "tables": [
+        {
+          "table": "silver.claims",
+          "legacy_rows": 6415,
+          "migrated_rows": 6412,
+          "column_total_diffs": {
+            "claim_age_days": 867.0
+          },
+          "mismatched_keys": 3,
+          "sample_mismatches": [
+            {
+              "claim_id": "CL00003434",
+              "problem": "row missing from migrated output (legacy produces it)",
+              "legacy_row": {
+                "policy_id": "P00024507",
+                "loss_date": "2024-09-25",
+                "reported_date": "2024-09-26",
+                "claim_type": "WATER",
+                "status": " Rejected",
+                "reserve_amount": "0.00",
+                "claim_age_days": 461
+              }
+            },
+            {
+              "claim_id": "CL00001376",
+              "problem": "row missing from migrated output (legacy produces it)",
+              "legacy_row": {
+                "policy_id": "P00009716",
+                "loss_date": "2024-12-09",
+                "reported_date": "2024-12-10",
+                "claim_type": "THEFT",
+                "status": " Rejected",
+                "reserve_amount": "0.00",
+                "claim_age_days": 386
+              }
+            },
+            {
+              "claim_id": "CL00003090",
+              "problem": "row missing from migrated output (legacy produces it)",
+              "legacy_row": {
+                "policy_id": "P00022087",
+                "loss_date": "2025-12-09",
+                "reported_date": "2025-12-11",
+                "claim_type": "STORM",
+                "status": " Rejected",
+                "reserve_amount": "0.00",
+                "claim_age_days": 20
+              }
+            }
+          ],
+          "input_rows": [
+            {
+              "input_table": "dbo.claims",
+              "claim_id": "CL00001376",
+              "policy_id": "P00009716",
+              "loss_date": "2024-12-09",
+              "reported_date": "2024-12-10",
+              "claim_type": "THEFT",
+              "status": " Rejected",
+              "reserve_amount": "0.00"
+            },
+            {
+              "input_table": "dbo.claims",
+              "claim_id": "CL00003090",
+              "policy_id": "P00022087",
+              "loss_date": "2025-12-09",
+              "reported_date": "2025-12-11",
+              "claim_type": "STORM",
+              "status": " Rejected",
+              "reserve_amount": "0.00"
+            },
+            {
+              "input_table": "dbo.claims",
+              "claim_id": "CL00003434",
+              "policy_id": "P00024507",
+              "loss_date": "2024-09-25",
+              "reported_date": "2024-09-26",
+              "claim_type": "WATER",
+              "status": " Rejected",
+              "reserve_amount": "0.00"
+            }
+          ],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 47.41,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    },
+    {
+      "job_id": "J05_stg_claims",
+      "attempt": 2,
+      "passed": false,
+      "tables": [
+        {
+          "table": "silver.claims",
+          "legacy_rows": 0,
+          "migrated_rows": 0,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": [
+            "no usable code: J05_stg_claims: no valid translation after 3 tries (job_py is the same code as an earlier attempt that already failed. Change the logic that causes the reported differences)"
+          ]
+        }
+      ],
+      "runtime_seconds": 112.3,
+      "engine": "databricks-serverless",
+      "golden_checked": false
+    },
+    {
+      "job_id": "J05_stg_claims",
+      "attempt": 3,
+      "passed": true,
+      "tables": [
+        {
+          "table": "silver.claims",
+          "legacy_rows": 6415,
+          "migrated_rows": 6415,
+          "column_total_diffs": {},
+          "mismatched_keys": 0,
+          "sample_mismatches": [],
+          "input_rows": [],
+          "contract_violations": []
+        }
+      ],
+      "runtime_seconds": 92.36,
+      "engine": "databricks-serverless",
+      "golden_checked": true
+    }
+  ],
+  "notes": [
+    "attempt 1: Reproduced case-insensitive string comparison for status.",
+    "attempt 1: Reversed date parameters in datediff to match T-SQL behavior.",
+    "attempt 1: Ensured NULL status values are excluded as in T-SQL.",
+    "attempt 1: Hardcoded the asof date as in the legacy code.",
+    "attempt 1: Computed claim_age_days as the difference in days between the asof date and reported_date.",
+    "attempt 3: validation failure on try 1: job_py is the same code as an earlier attempt that already failed. Change the logic that causes the reported differences",
+    "attempt 3: diagnosis: The legacy code treats rows with leading or trailing spaces in the 'status' column as 'REJECTED' because of the case-insensitive and space-ignoring comparison. The previous attempts did not handle this correctly, causing rows with ' Rejected' (leading space) to be excluded in the migration.",
+    "attempt 3: change: Modified the filter condition to use `upper(rtrim(col('status'))) != 'REJECTED'` to match the legacy behavior of ignoring trailing spaces and being case-insensitive.",
+    "attempt 3: Reproduced case-insensitive and space-ignoring string comparison for 'status'.",
+    "attempt 3: Reproduced the calculation of 'claim_age_days' using the hardcoded as-of date.",
+    "attempt 3: Ensured that 'status' is not modified in the output, matching the legacy contract.",
+    "attempt 3: Verified that 'claim_age_days' is an integer and non-negative.",
+    "attempt 3: Confirmed that 'reserve_amount' is of type decimal(18,2) and non-nullable.",
+    "unit tests: written to test_job.py"
+  ]
+}

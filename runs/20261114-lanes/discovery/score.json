@@ -1,0 +1,8 @@
+{
+  "tables": "100% (12/12)",
+  "dependencies": "100% (12/12)",
+  "waves": "100% (12/12)",
+  "column_lineage_exact": "100% (73/73)",
+  "columns_not_found": 0,
+  "mismatches": []
+}
