@@ -1,0 +1,56 @@
+# Example checks for the validator.   Run:  python -m validator validator/example_config.yml
+#
+# Passwords and tokens never go in this file. A connection names the ENVIRONMENT VARIABLES
+# that hold them (password_env, user_env); put the values in .env or export them.
+
+title: Legacy vs cloud validation (example)
+
+connections:
+  lakehouse:
+    type: databricks            # Databricks Connect; reads DATABRICKS_HOST and DATABRICKS_TOKEN
+  legacy_sql:
+    type: sqlserver             # the legacy SQL Server (the Docker instance used by legacy/run_legacy_tsql.py)
+    host: localhost
+    port: 1433
+    database: InsuranceLegacy
+    user: sa                    # or user_env: NAME_OF_VARIABLE
+    password_env: MSSQL_SA_PASSWORD
+
+defaults:
+  tolerance: {abs: 0.000000001, rel: 0}   # numbers: |legacy - cloud| <= abs + rel * max(|legacy|, |cloud|)
+  trim: true                              # ignore leading / trailing spaces in text
+  case_sensitive: true
+  null_values: ["", ".", "NULL"]          # text treated as NULL (SAS writes a missing number as '.')
+
+checks:
+  # 1. A legacy extract file against a Databricks table.
+  - name: open_reserves
+    legacy: {file: legacy/golden/rpt_open_reserves.csv}
+    cloud:  {connection: lakehouse, table: workspace.gold.open_reserves}
+    keys: [product_code, age_band]
+    columns:
+      total_reserve: {round: 2}           # round both sides to 2 decimals before comparing
+
+  # 2. A legacy extract against a Databricks query, with a tolerance on one column.
+  - name: loss_ratio
+    legacy: {file: legacy/golden/rpt_loss_ratio.csv}
+    cloud:
+      connection: lakehouse
+      query: SELECT product_code, year, earned_premium, incurred, claim_count, loss_ratio FROM workspace.gold.loss_ratio
+    keys: [product_code, year]            # year is NULL on some rows: NULL keys match NULL keys
+    columns:
+      loss_ratio: {abs: 0.00005}
+
+  # 3. Two Excel files (uncomment and point at your files).
+  # - name: premium_collections
+  #   legacy: {file: extracts/legacy_premium_collections.xlsx, sheet: Sheet1}
+  #   cloud:  {file: extracts/cloud_premium_collections.xlsx}
+  #   keys: [product_code, period]
+  #   column_map: {prod_cd: product_code}   # legacy column name -> cloud column name
+  #   ignore: [loaded_at]                   # columns to leave out on either side
+
+  # 4. Server against server: SQL Server table against Databricks table (needs the SQL Server running).
+  # - name: stg_claims
+  #   legacy: {connection: legacy_sql, table: stg.claims}
+  #   cloud:  {connection: lakehouse, table: workspace.silver.claims}
+  #   keys: [claim_id]
